@@ -35,7 +35,9 @@
   },
   "susfs_kowsu": {
     "pin": "b57ed1998b82c4e3a2a81cdbf11172a560979c40",
-    "skip": []
+    "skip": [
+      "8b25990241174fe88d2131a9929e36b5e5ffb1d0"
+    ]
   },
   "ksu": {
     "pin": "469c4282e72382388b4598fa022fe8ca91dc9ab5",
