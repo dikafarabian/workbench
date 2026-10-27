@@ -31,6 +31,12 @@ if susfs_active; then
         "${KSU_DIR}/kernel/manager/pkg_observer.c" \
         || error "SukiSU-Ultra: track_throne flag compat patch failed!"
     log "track_throne flag compat patched ✅"
+
+    log "Patching fall-through compat..."
+    ksu_patcher fallthrough_compat.py \
+        "${KSU_DIR}/kernel/policy/allowlist.c" \
+        || error "SukiSU-Ultra: fall-through compat patch failed!"
+    log "fall-through compat patched ✅"
 fi
 
 SUKISU_REPO="SukiSU-Ultra/SukiSU-Ultra"
