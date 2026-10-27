@@ -12,14 +12,12 @@
     "skip": []
   },
   "sukisu_builtin": {
-    "pin": "5ef32ad5d5eba3033f86467fd4fa094e032c5237",
+    "pin": "0b666cad90f3a13cb4085f8c88e5144594e82030",
     "skip": []
   },
   "susfs_sukisu": {
     "pin": "2385dab487c3abb8c4a2990ea5c852f55fb47dc8",
-    "skip": [
-      "b57ed1998b82c4e3a2a81cdbf11172a560979c40"
-    ]
+    "skip": []
   },
   "ksunext": {
     "pin": "d21e0a66c887ae4bc75b7c9f83e41761819ec09a",
