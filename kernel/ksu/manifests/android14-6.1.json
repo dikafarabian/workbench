@@ -17,7 +17,9 @@
   },
   "susfs_sukisu": {
     "pin": "4afc5fb393634bd515b3d27a6ec5921f15aaeb54",
-    "skip": []
+    "skip": [
+      "a0ac906915c8a8d50d474dfb3cae478ef32edc1a"
+    ]
   },
   "ksunext": {
     "pin": "f0e4e0fa17d50c385f954896477a43a94ae74801",
