@@ -58,11 +58,6 @@ mark_stage_ok() {
     github_env "$1" true
 }
 
-join_csv() {
-    local IFS=,
-    echo "$*"
-}
-
 write_dry_run_image() {
     local path="$1"
     mkdir -p "$(dirname "$path")"
