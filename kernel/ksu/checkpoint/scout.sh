@@ -154,6 +154,12 @@ case "$KERNEL_VARIANT" in
             track_susfs susfs_bakasu SUSFS_BAKASU "SuSFS (BakaSU pairing)"
         fi
         ;;
+    FINASU)
+        track_commit finasu FINASU "FinaSU (dev)" LyraVoid/FinaSU dev
+        if susfs_active; then
+            track_susfs susfs_finasu SUSFS_FINASU "SuSFS (FinaSU pairing)"
+        fi
+        ;;
     VANILLA)
         log "scout: VANILLA — nothing to track"
         ;;

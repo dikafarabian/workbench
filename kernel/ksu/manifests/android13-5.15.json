@@ -42,5 +42,13 @@
   "sukisu": {
     "pin": "",
     "skip": []
+  },
+  "finasu": {
+    "pin": "",
+    "skip": []
+  },
+  "susfs_finasu": {
+    "pin": "",
+    "skip": []
   }
 }

@@ -54,6 +54,10 @@ on:
         description: "BakaSU"
         type: boolean
         default: true
+      finasu:
+        description: "FinaSU"
+        type: boolean
+        default: false
       vanilla:
         description: "Vanilla"
         type: boolean

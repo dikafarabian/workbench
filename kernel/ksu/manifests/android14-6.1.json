@@ -42,5 +42,13 @@
   "susfs_ksu": {
     "pin": "a0ac906915c8a8d50d474dfb3cae478ef32edc1a",
     "skip": []
+  },
+  "finasu": {
+    "pin": "",
+    "skip": []
+  },
+  "susfs_finasu": {
+    "pin": "",
+    "skip": []
   }
 }

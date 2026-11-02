@@ -317,6 +317,7 @@ variant_display_name() {
         KSUNEXT) echo "KernelSU-Next" ;;
         SUKISU)  echo "SukiSU-Ultra" ;;
         BAKASU)  echo "BakaSU" ;;
+        FINASU)  echo "FinaSU" ;;
         VANILLA) echo "Vanilla" ;;
         *)       echo "$1" ;;
     esac

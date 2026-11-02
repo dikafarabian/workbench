@@ -27,6 +27,7 @@ declare -A KBUILD_VERSION_LABEL=(
     [KSUNEXT]="KernelSU-Next version"
     [SUKISU]="SukiSU-Ultra version"
     [BAKASU]="BakaSU version code"
+    [FINASU]="KernelSU version"
 )
 
 correct_version_display() {
