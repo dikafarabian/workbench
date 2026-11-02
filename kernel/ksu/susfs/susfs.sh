@@ -98,6 +98,11 @@ if [[ " ${SUSFS_KSU_ENABLE_VARIANTS} " == *" ${KERNEL_VARIANT} "* ]]; then
     susfs_after_ksu_enable
 fi
 
+log "Aligning KernelSU with SuSFS priority uid filter gate..."
+python3 "${SUSFS_LOCAL_DIR}/priority_uid_filter_compat.py" "$KSU_DIR" "${KERNEL_SRC}/include/linux/susfs.h" \
+    || error "SuSFS: priority uid filter compat patch failed!"
+log "Priority uid filter gate aligned ✅"
+
 rm -rf "$SUSFS_DIR"
 
 KSU_KCONFIG="${KSU_DIR}/kernel/Kconfig"
