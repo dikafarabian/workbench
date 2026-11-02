@@ -22,6 +22,11 @@ KCONFIG_BLOCK = (
 OPEN = f"#ifdef {GUARD}\n"
 CLOSE = f"#endif // #ifdef {GUARD}\n"
 
+HELPERS = re.compile(
+    r"/\*\n \* Switches the selinux domain of the current process.*?"
+    r"static void susfs_restore_creds\(struct cred \*orig_cred\) \{.*?\n\}\n",
+    re.DOTALL,
+)
 PARSE_CALL = re.compile(
     r"^[ \t]*susfs_parse_priority_app_strings\(\);[ \t]*\n", re.MULTILINE
 )
@@ -63,9 +68,25 @@ def gated_sources(source_dir):
     return gated
 
 
+def guard_unused_helpers(susfs_source):
+    content = susfs_source.read_text()
+    block = HELPERS.search(content)
+    if not block:
+        print(f"{susfs_source}: priority helpers not found, skipping.")
+        return
+    if content[: block.start()].endswith(OPEN):
+        print("Priority helpers already gated, skipping.")
+        return
+    susfs_source.write_text(
+        content[: block.start()] + wrap(block) + content[block.end():]
+    )
+    print("KernelSU source does not use the priority uid filter, helpers gated.")
+
+
 def main():
     ksu_dir = pathlib.Path(sys.argv[1])
     susfs_header = pathlib.Path(sys.argv[2])
+    susfs_source = pathlib.Path(sys.argv[3])
     kconfig = ksu_dir / "kernel" / "Kconfig"
 
     if GUARD not in susfs_header.read_text(errors="ignore"):
@@ -77,7 +98,7 @@ def main():
 
     gated = gated_sources(ksu_dir / "kernel")
     if not gated:
-        print("KernelSU source does not use the priority uid filter, skipping.")
+        guard_unused_helpers(susfs_source)
         sys.exit(0)
 
     patch_kconfig(kconfig)
