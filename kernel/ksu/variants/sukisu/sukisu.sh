@@ -26,12 +26,6 @@ ksu_patcher branding.py "$BRANDING_TARGET" \
 log "Branding applied ✅"
 
 if susfs_active; then
-    log "Patching track_throne flag compat..."
-    ksu_patcher track_throne_compat.py \
-        "${KSU_DIR}/kernel/manager/pkg_observer.c" \
-        || error "SukiSU-Ultra: track_throne flag compat patch failed!"
-    log "track_throne flag compat patched ✅"
-
     log "Patching fall-through compat..."
     ksu_patcher fallthrough_compat.py \
         "${KSU_DIR}/kernel/policy/allowlist.c" \
