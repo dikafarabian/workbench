@@ -52,16 +52,15 @@ def patch_kconfig(kconfig):
     )
 
 
-def patch_sources(source_dir):
-    wrapped = 0
+def gated_sources(source_dir):
+    gated = {}
     for source in source_dir.rglob("*.c"):
         content = source.read_text(errors="ignore")
         updated, parse_count = PARSE_CALL.subn(wrap, content)
         updated, case_count = SET_CASE.subn(wrap, updated)
         if parse_count or case_count:
-            source.write_text(updated)
-            wrapped += parse_count + case_count
-    return wrapped
+            gated[source] = updated
+    return gated
 
 
 def main():
@@ -76,12 +75,15 @@ def main():
         print("KernelSU source already defines the priority uid filter gate, skipping.")
         sys.exit(0)
 
+    gated = gated_sources(ksu_dir / "kernel")
+    if not gated:
+        print("KernelSU source does not use the priority uid filter, skipping.")
+        sys.exit(0)
+
     patch_kconfig(kconfig)
-    wrapped = patch_sources(ksu_dir / "kernel")
-    if not wrapped:
-        print("No priority uid filter call sites found to gate.")
-        sys.exit(1)
-    print(f"Priority uid filter gate added, {wrapped} call site(s) wrapped.")
+    for source, updated in gated.items():
+        source.write_text(updated)
+    print(f"Priority uid filter gate added, {len(gated)} file(s) gated.")
 
 
 if __name__ == "__main__":
