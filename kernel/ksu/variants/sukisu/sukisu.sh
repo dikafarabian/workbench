@@ -31,6 +31,12 @@ if susfs_active; then
         "${KSU_DIR}/kernel/policy/allowlist.c" \
         || error "SukiSU-Ultra: fall-through compat patch failed!"
     log "fall-through compat patched ✅"
+
+    log "Patching sepolicy generation compat..."
+    ksu_patcher rules_compat.py \
+        "${KSU_DIR}/kernel/selinux/rules.c" \
+        || error "SukiSU-Ultra: sepolicy generation compat patch failed!"
+    log "sepolicy generation compat patched ✅"
 fi
 
 SUKISU_REPO="SukiSU-Ultra/SukiSU-Ultra"
