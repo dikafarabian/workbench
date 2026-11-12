@@ -599,10 +599,26 @@ index 7e337abff..8b6e0b3cb 100644
      pr_info("handle umount for uid: %d, pid: %d\n", new_uid, current->pid);
  
 diff --git a/kernel/feature/module_blacklist.c b/kernel/feature/module_blacklist.c
-index 55c641f1e..4695cce2d 100644
+index 55c641f1e..5eb7c7684 100644
 --- a/kernel/feature/module_blacklist.c
 +++ b/kernel/feature/module_blacklist.c
-@@ -138,8 +138,7 @@ void __init ksu_module_blacklist_init(void)
+@@ -13,15 +13,6 @@
+ #include "klog.h" // IWYU pragma: keep
+ #include "ksu.h"
+ 
+-#if defined(CONFIG_MODULES) && (defined(CONFIG_ARM64) || defined(CONFIG_X86_64) || defined(CONFIG_RISCV))
+-#define KSU_MODULE_BLACKLIST_GUARD
+-
+-#include <asm/unistd.h>
+-
+-#include "hook/syscall_hook.h"
+-#include "runtime/ksud_boot.h"
+-#endif
+-
+ // Block kernel modules from loading by reusing the kernel's native
+ // `module_blacklist` (consulted by blacklisted() before a module is laid out),
+ // instead of hooking init_module/finit_module. It is the standard mechanism and
+@@ -138,8 +129,7 @@ void __init ksu_module_blacklist_init(void)
      }
  
  #ifdef KSU_MODULE_BLACKLIST_GUARD
