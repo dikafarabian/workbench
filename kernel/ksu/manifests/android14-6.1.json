@@ -57,6 +57,8 @@
   },
   "susfs_midorisu": {
     "pin": "",
-    "skip": []
+    "skip": [
+      "69b8e734920b8f9ed885ab8d112969719698e242"
+    ]
   }
 }
