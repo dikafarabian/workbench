@@ -89,11 +89,8 @@ else
 fi
 
 if [[ " ${SUSFS_KSU_ENABLE_VARIANTS} " == *" ${KERNEL_VARIANT} "* ]]; then
-    if [ "$KERNEL_VARIANT" = "KOWSU" ]; then
-        KSU_PATCH="${SUSFS_LOCAL_DIR}/patches/10_enable_susfs_for_kowsu.patch"
-    else
-        KSU_PATCH="${SUSFS_DIR}/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch"
-    fi
+    KSU_PATCH="${SUSFS_LOCAL_DIR}/patches/10_enable_susfs_for_${KERNEL_VARIANT,,}.patch"
+    [ -f "$KSU_PATCH" ] || KSU_PATCH="${SUSFS_DIR}/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch"
     apply_patch "SuSFS 10_enable (${KERNEL_VARIANT})" "$KSU_PATCH" "$KSU_DIR" --fuzz=3
     susfs_after_ksu_enable
 fi

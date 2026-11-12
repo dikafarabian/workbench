@@ -4,7 +4,7 @@
 # 🧬 SuSFS quirks — kernel 6.1
 # ======================================================
 
-SUSFS_KSU_ENABLE_VARIANTS="KSU KOWSU"
+SUSFS_KSU_ENABLE_VARIANTS="KSU KOWSU MIDORISU"
 
 susfs_patch_expects_blk_include() {
     grep -qxF ' #include <trace/hooks/blk.h>' "$KERNEL_PATCH"

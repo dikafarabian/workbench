@@ -50,5 +50,13 @@
   "susfs_finasu": {
     "pin": "",
     "skip": []
+  },
+  "midorisu": {
+    "pin": "",
+    "skip": []
+  },
+  "susfs_midorisu": {
+    "pin": "",
+    "skip": []
   }
 }

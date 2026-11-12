@@ -10,12 +10,14 @@ declare -gA MIRROR_SOURCE_URL=(
     [ksunext]="https://github.com/pershoot/KernelSU-Next"
     [kowsu]="https://github.com/KOWX712/KernelSU"
     [finasu]="https://github.com/LyraVoid/FinaSU"
+    [midorisu]="https://github.com/midori01/KernelSU"
     [ksu]="https://github.com/tiann/KernelSU"
     [susfs_bakasu]="https://gitlab.com/simonpunk/susfs4ksu.git"
     [susfs_sukisu]="https://gitlab.com/simonpunk/susfs4ksu.git"
     [susfs_ksunext]="https://gitlab.com/simonpunk/susfs4ksu.git"
     [susfs_kowsu]="https://gitlab.com/simonpunk/susfs4ksu.git"
     [susfs_finasu]="https://gitlab.com/simonpunk/susfs4ksu.git"
+    [susfs_midorisu]="https://gitlab.com/simonpunk/susfs4ksu.git"
     [susfs_ksu]="https://gitlab.com/simonpunk/susfs4ksu.git"
 )
 
@@ -27,12 +29,14 @@ declare -gA MIRROR_REPO=(
     [ksunext]="${MIRROR_OWNER}/KernelSU-Next"
     [kowsu]="${MIRROR_OWNER}/KernelSU"
     [finasu]="${MIRROR_OWNER}/FinaSU"
+    [midorisu]="${MIRROR_OWNER}/KernelSU"
     [ksu]="${MIRROR_OWNER}/KernelSU"
     [susfs_bakasu]="${MIRROR_OWNER}/susfs4ksu-mirror"
     [susfs_sukisu]="${MIRROR_OWNER}/susfs4ksu-mirror"
     [susfs_ksunext]="${MIRROR_OWNER}/susfs4ksu-mirror"
     [susfs_kowsu]="${MIRROR_OWNER}/susfs4ksu-mirror"
     [susfs_finasu]="${MIRROR_OWNER}/susfs4ksu-mirror"
+    [susfs_midorisu]="${MIRROR_OWNER}/susfs4ksu-mirror"
     [susfs_ksu]="${MIRROR_OWNER}/susfs4ksu-mirror"
 )
 

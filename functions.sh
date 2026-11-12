@@ -318,6 +318,7 @@ variant_display_name() {
         SUKISU)  echo "SukiSU-Ultra" ;;
         BAKASU)  echo "BakaSU" ;;
         FINASU)  echo "FinaSU" ;;
+        MIDORISU) echo "MidoriSU" ;;
         VANILLA) echo "Vanilla" ;;
         *)       echo "$1" ;;
     esac

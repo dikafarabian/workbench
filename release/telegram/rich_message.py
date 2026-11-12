@@ -16,6 +16,7 @@ VARIANT_DISPLAY = {
     "SUKISU": "SukiSU-Ultra",
     "BAKASU": "BakaSU",
     "FINASU": "FinaSU",
+    "MIDORISU": "MidoriSU",
     "VANILLA": "Vanilla",
 }
 
@@ -45,7 +46,7 @@ def is_build_mode(env) -> bool:
     return env.get("RUN_MODE", "").strip().upper() == "BUILD"
 
 
-VARIANT_ORDER = ["KSU", "KOWSU", "KSUNEXT", "SUKISU", "BAKASU", "FINASU", "VANILLA"]
+VARIANT_ORDER = ["KSU", "KOWSU", "KSUNEXT", "SUKISU", "BAKASU", "FINASU", "MIDORISU", "VANILLA"]
 
 
 def variant_sort_key(key: str):

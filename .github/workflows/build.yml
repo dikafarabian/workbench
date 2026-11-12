@@ -58,6 +58,10 @@ on:
         description: "FinaSU"
         type: boolean
         default: true
+      midorisu:
+        description: "MidoriSU"
+        type: boolean
+        default: true
       vanilla:
         description: "Vanilla"
         type: boolean
