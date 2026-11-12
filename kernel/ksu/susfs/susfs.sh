@@ -128,6 +128,14 @@ if grep -q "^config KSU_SUSFS_PRIORITY_UID_FILTER$" "$KSU_KCONFIG"; then
 else
     warn "SuSFS: ${KERNEL_VARIANT} has no priority uid filter support — 9/10 features"
 fi
+if [ "$KERNEL_VARIANT" = "FINASU" ]; then
+    if grep -q "^config KSU_HOOK_SUSFS_INLINE$" "$KSU_KCONFIG"; then
+        gki_defconfig_enable CONFIG_KSU_HOOK_SUSFS_INLINE
+        log "FinaSU hook backend: SuSFS inline ✅"
+    else
+        warn "SuSFS: FinaSU has no inline hook backend — staying on tracepoint"
+    fi
+fi
 log "SuSFS configs enabled ✅"
 
 log "SuSFS integrated ✅"
