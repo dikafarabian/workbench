@@ -598,6 +598,20 @@ index 7e337abff..8b6e0b3cb 100644
      // umount the target mnt
      pr_info("handle umount for uid: %d, pid: %d\n", new_uid, current->pid);
  
+diff --git a/kernel/feature/module_blacklist.c b/kernel/feature/module_blacklist.c
+index 55c641f1e..4695cce2d 100644
+--- a/kernel/feature/module_blacklist.c
++++ b/kernel/feature/module_blacklist.c
+@@ -138,8 +138,7 @@ void __init ksu_module_blacklist_init(void)
+     }
+ 
+ #ifdef KSU_MODULE_BLACKLIST_GUARD
+-    if (!ksu_late_loaded)
+-        arm_module_blacklist_guard();
++    arm_module_blacklist_guard();
+ #endif
+ 
+     // Release-publish: pairs with the address dependency in the lockless
 diff --git a/kernel/feature/selinux_hide.c b/kernel/feature/selinux_hide.c
 index 67c866d6c..12e56b4c3 100644
 --- a/kernel/feature/selinux_hide.c
