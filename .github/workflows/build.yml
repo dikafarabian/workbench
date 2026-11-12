@@ -57,7 +57,7 @@ on:
       finasu:
         description: "FinaSU"
         type: boolean
-        default: false
+        default: true
       vanilla:
         description: "Vanilla"
         type: boolean
