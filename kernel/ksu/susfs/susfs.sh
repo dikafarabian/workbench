@@ -122,6 +122,12 @@ gki_defconfig_enable \
     CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG \
     CONFIG_KSU_SUSFS_OPEN_REDIRECT \
     CONFIG_KSU_SUSFS_SUS_MAP
+
+if grep -q "^config KSU_SUSFS_PRIORITY_UID_FILTER$" "$KSU_KCONFIG"; then
+    gki_defconfig_enable CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER
+else
+    warn "SuSFS: ${KERNEL_VARIANT} has no priority uid filter support — 9/10 features"
+fi
 log "SuSFS configs enabled ✅"
 
 log "SuSFS integrated ✅"
