@@ -53,7 +53,9 @@
   },
   "midorisu": {
     "pin": "f5e61fcac6a0c4c9752ff90ddd2647fb9d8a01b7",
-    "skip": []
+    "skip": [
+      "c60a8f614285fe82e41040d14c445619340e7f79"
+    ]
   },
   "susfs_midorisu": {
     "pin": "69b8e734920b8f9ed885ab8d112969719698e242",
