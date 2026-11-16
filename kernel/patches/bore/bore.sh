@@ -4,7 +4,7 @@
 # 🔥 PATCH — BORE (CPU scheduler)
 # ======================================================
 
-BORE_PATCH="${ROOT_DIR}/kernel/patches/bore/bore-v6.8.0-rc1.patch"
+BORE_PATCH="${ROOT_DIR}/kernel/patches/bore/bore-v7.0.0.patch"
 
 log "🔥 Applying BORE CPU scheduler patch..."
 apply_patch "BORE" "$BORE_PATCH" "$KERNEL_SRC" --fuzz=3
