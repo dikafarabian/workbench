@@ -21,6 +21,9 @@ KCONFIG_BLOCK = (
 
 OPEN = f"#ifdef {GUARD}\n"
 CLOSE = f"#endif // #ifdef {GUARD}\n"
+HELPERS_CONDITION = f"defined({GUARD}) || defined(CONFIG_KSU_SUSFS_SUS_PATH)"
+HELPERS_OPEN = f"#if {HELPERS_CONDITION}\n"
+HELPERS_CLOSE = f"#endif // #if {HELPERS_CONDITION}\n"
 
 HELPERS = re.compile(
     r"/\*\n \* Switches the selinux domain of the current process.*?"
@@ -74,11 +77,15 @@ def guard_unused_helpers(susfs_source):
     if not block:
         print(f"{susfs_source}: priority helpers not found, skipping.")
         return
-    if content[: block.start()].endswith(OPEN):
+    if content[: block.start()].endswith(HELPERS_OPEN):
         print("Priority helpers already gated, skipping.")
         return
     susfs_source.write_text(
-        content[: block.start()] + wrap(block) + content[block.end():]
+        content[: block.start()]
+        + HELPERS_OPEN
+        + block.group(0)
+        + HELPERS_CLOSE
+        + content[block.end():]
     )
     print("KernelSU source does not use the priority uid filter, helpers gated.")
 
