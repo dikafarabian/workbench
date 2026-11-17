@@ -24,6 +24,9 @@ elif [ "${LTO_MODE}" = "FULL" ]; then
     config --disable CONFIG_LTO_NONE
     config --disable CONFIG_LTO_CLANG_THIN
     config --enable  CONFIG_LTO_CLANG_FULL
+    config --disable CONFIG_DEBUG_INFO_DWARF4
+    config --disable CONFIG_DEBUG_INFO
+    config --enable  CONFIG_DEBUG_INFO_NONE
     log "LTO: FULL ✅"
 else
     [ "${LTO_MODE}" = "NONE" ] \
