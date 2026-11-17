@@ -48,7 +48,7 @@ LD_JOBS=$(( $(nproc --all) / 2 ))
 [ "$LD_JOBS" -ge 1 ] || LD_JOBS=1
 
 NEEDS_WRAPPER=0
-if [ "${LTO_MODE}" = "THIN" ]; then
+if [ "${LTO_MODE}" = "THIN" ] || [ "${LTO_MODE}" = "FULL" ]; then
     NEEDS_WRAPPER=1
 elif [ "${LTO_MODE}" = "NONE" ] && [[ "${KERNEL_VERSION}" == 5.* ]]; then
     NEEDS_WRAPPER=1
@@ -70,7 +70,7 @@ if [ "$NEEDS_WRAPPER" = "1" ]; then
     if [ "${LTO_MODE}" = "THIN" ]; then
         log "ThinLTO ld-wrapper enabled (cache: /dev/shm/ldcache, jobs/threads: ${LD_JOBS}) ✅"
     else
-        log "ld-wrapper enabled: kernel ${KERNEL_VERSION} + LTO_MODE=NONE (threads: 1, memory-bounded link) ✅"
+        log "ld-wrapper enabled: kernel ${KERNEL_VERSION} + LTO_MODE=${LTO_MODE} (threads: 1, memory-bounded link) ✅"
     fi
 fi
 
