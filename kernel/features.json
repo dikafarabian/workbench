@@ -96,8 +96,16 @@
       "name": "Schedutil Catch-up",
       "versions": ["6.1"]
     },
+    "reflex": {
+      "name": "Reflex",
+      "versions": ["6.1"]
+    },
     "ufs_writebooster_catchup": {
       "name": "UFS WriteBooster Catch-up",
+      "versions": ["6.1"]
+    },
+    "adios": {
+      "name": "ADIOS",
       "versions": ["6.1"]
     }
   },
