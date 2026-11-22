@@ -28,7 +28,7 @@ on:
       kernel_branch_override:
         description: "Kernel Branch"
         type: choice
-        default: "luminaire"
+        default: "lts"
         options:
           - "base"
           - "lts"
