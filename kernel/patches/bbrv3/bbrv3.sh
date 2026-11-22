@@ -10,8 +10,23 @@ BBRV3_PATCHES_BASE="https://github.com/WildKernels/kernel_patches/raw/main/commo
 
 BBRV3_PATCH="0001-net-tcp-backport-BBRv3-to-${ANDROID_VERSION}-${KERNEL_VERSION}.patch"
 
+BBRV3_SYSCTL_SOURCE="${KERNEL_SRC}/net/ipv4/sysctl_net_ipv4.c"
+TCP_MIN_RCVBUF_DECL="static int tcp_min_rcvbuf = 4096;"
+TCP_MIN_RCVBUF_DETACHED=false
+
+if grep -qxF "${TCP_MIN_RCVBUF_DECL}" "${BBRV3_SYSCTL_SOURCE}"; then
+    sed -i "/^${TCP_MIN_RCVBUF_DECL}\$/,+1d" "${BBRV3_SYSCTL_SOURCE}"
+    TCP_MIN_RCVBUF_DETACHED=true
+fi
+
 log "🚀 Applying BBRv3 patch (${BBRV3_PATCH})..."
 apply_remote_patch "BBRv3" "${BBRV3_PATCHES_BASE}/${BBRV3_PATCH}" "$KERNEL_SRC"
+
+if [ "${TCP_MIN_RCVBUF_DETACHED}" = true ]; then
+    sed -i "s|^/\* obsolete \*/\$|${TCP_MIN_RCVBUF_DECL}\n\n&|" "${BBRV3_SYSCTL_SOURCE}"
+    log "BBRv3: tcp_min_rcvbuf declaration restored ✅"
+fi
+
 gki_defconfig_enable CONFIG_TCP_CONG_ADVANCED CONFIG_TCP_CONG_BBR3 CONFIG_DEFAULT_BBR3
 
 cd "${KERNEL_SRC}"
