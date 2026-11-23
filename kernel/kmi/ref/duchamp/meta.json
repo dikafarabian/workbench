@@ -1,0 +1,11 @@
+{
+  "name": "duchamp",
+  "kernel_release": "6.1.138-android14-11-g44bda9e8f6e9-ab13792638",
+  "kmi_tag": "android14-11",
+  "module_layout": "0xea759d7f",
+  "kernel_symbols": 8117,
+  "kernel_imports": 3122,
+  "modules": 525,
+  "unresolved_in_stock": [],
+  "conflicting_imports": []
+}
