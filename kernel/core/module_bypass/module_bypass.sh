@@ -5,6 +5,11 @@
 # ======================================================
 # Patches kernel/module/version.c
 
+if [ -n "${KMI_REFERENCE:-}" ]; then
+    log "Module version bypass skipped (KMI gate active)"
+    return 0
+fi
+
 if [ "${MODULE_BYPASS_ENABLED:-true}" != "true" ]; then
     log "Module version bypass disabled (MODULE_BYPASS_ENABLED=false) — skipping"
     return 0

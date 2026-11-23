@@ -3,7 +3,7 @@
 # ======================================================
 # ✨ BUILD — Luminaire Pipeline
 # ======================================================
-# Flow: setup → branding → root solution → core → patches → addons → build → release
+# Flow: setup → branding → root solution → core → patches → addons → build → kmi gate → release
 
 set -eo pipefail
 
@@ -23,6 +23,7 @@ source "${ROOT_DIR}/kernel/addons/registry.sh"
 source "${ROOT_DIR}/kernel/patches/registry.sh"
 source "${ROOT_DIR}/kernel/kabi/registry.sh"
 source "${ROOT_DIR}/kernel/ksu/registry.sh"
+source "${ROOT_DIR}/kernel/kmi/registry.sh"
 
 print_run_complete() {
     echo "========================================"
@@ -64,6 +65,7 @@ main() {
     run_addons
     mark_stage_ok CHECKPOINT_ADDONS_OK
     run_build
+    run_kmi_gate
     mark_stage_ok CHECKPOINT_BUILD_OK
 
     if [ "${RUN_MODE^^}" != "WARM RUN" ]; then
