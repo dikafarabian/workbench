@@ -112,10 +112,6 @@ on:
           - "NONE"
           - "THIN"
           - "FULL"
-      kmi_reference:
-        description: "KMI Gate Reference (empty = off)"
-        type: string
-        default: ""
       run_mode:
         description: "Run Mode"
         type: choice
@@ -263,7 +259,7 @@ jobs:
       LOCALVERSION_OVERRIDE:      ${{ inputs.localversion_override }}
       BUILD_IDENTITY_OVERRIDE:  "chainonyourdoor@LuminaireCI"
       LTO_MODE:                  ${{ inputs.lto_mode }}
-      KMI_REFERENCE:             ${{ inputs.kmi_reference }}
+      KMI_REFERENCE:             ${{ vars.KMI_REFERENCE }}
       RUN_MODE:                    ${{ inputs.run_mode }}
       DRY_RUN:                     ${{ inputs.run_mode == 'Dry Run' }}
       BUILD_SYSTEM:                ${{ inputs.build_system }}
