@@ -1,7 +1,9 @@
 {
   "bakasu": {
     "pin": "63ad1ea3a90455dee9d77163cdafb028d8a90416",
-    "skip": []
+    "skip": [
+      "63ad1ea3a90455dee9d77163cdafb028d8a90416"
+    ]
   },
   "susfs_bakasu": {
     "pin": "f76b81f2a6bf98e4029cc0c823c054edbec29803",
