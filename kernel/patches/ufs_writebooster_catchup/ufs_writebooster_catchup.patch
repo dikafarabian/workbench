@@ -1,8 +1,8 @@
 diff --git a/drivers/ufs/core/ufs-sysfs.c b/drivers/ufs/core/ufs-sysfs.c
-index 210ec9639..68317a240 100644
+index 210ec96..695aaeb 100644
 --- a/drivers/ufs/core/ufs-sysfs.c
 +++ b/drivers/ufs/core/ufs-sysfs.c
-@@ -300,6 +300,44 @@ static ssize_t enable_wb_buf_flush_store(struct device *dev,
+@@ -300,6 +300,44 @@ out:
  	return res < 0 ? res : count;
  }
  
@@ -56,7 +56,7 @@ index 210ec9639..68317a240 100644
 +{
 +	struct ufs_hba *hba = dev_get_drvdata(dev);
 +
-+	return sysfs_emit(buf, "%d\n", hba->critical_health_count);
++	return sysfs_emit(buf, "%d\n", hba->dev_info.critical_health_count);
 +}
 +
 +static DEVICE_ATTR_RO(critical_health);
@@ -184,10 +184,10 @@ index 210ec9639..68317a240 100644
  };
  
 diff --git a/drivers/ufs/core/ufshcd.c b/drivers/ufs/core/ufshcd.c
-index 995609860..cbda37461 100644
+index f40d4a0..8729a2c 100644
 --- a/drivers/ufs/core/ufshcd.c
 +++ b/drivers/ufs/core/ufshcd.c
-@@ -6090,6 +6090,21 @@ int ufshcd_wb_toggle_buf_flush(struct ufs_hba *hba, bool enable)
+@@ -6104,6 +6104,21 @@ int ufshcd_wb_toggle_buf_flush(struct ufs_hba *hba, bool enable)
  	return ret;
  }
  
@@ -209,19 +209,19 @@ index 995609860..cbda37461 100644
  static bool ufshcd_wb_presrv_usrspc_keep_vcc_on(struct ufs_hba *hba,
  						u32 avail_buf)
  {
-@@ -6243,6 +6258,11 @@ static void ufshcd_exception_event_handler(struct work_struct *work)
+@@ -6257,6 +6272,11 @@ static void ufshcd_exception_event_handler(struct work_struct *work)
  	if (status & hba->ee_drv_mask & MASK_EE_URGENT_TEMP)
  		ufshcd_temp_exception_event_handler(hba, status);
  
 +	if (status & hba->ee_drv_mask & MASK_EE_HEALTH_CRITICAL) {
-+		hba->critical_health_count++;
++		hba->dev_info.critical_health_count++;
 +		sysfs_notify(&hba->dev->kobj, NULL, "critical_health");
 +	}
 +
  	ufs_debugfs_exception_event(hba, status);
  out:
  	ufshcd_scsi_unblock_requests(hba);
-@@ -8167,6 +8187,9 @@ static void ufshcd_wb_probe(struct ufs_hba *hba, const u8 *desc_buf)
+@@ -8181,6 +8201,9 @@ static void ufshcd_wb_probe(struct ufs_hba *hba, const u8 *desc_buf)
  	 */
  	dev_info->wb_buffer_type = desc_buf[DEVICE_DESC_PARAM_WB_TYPE];
  
@@ -231,12 +231,12 @@ index 995609860..cbda37461 100644
  	dev_info->b_presrv_uspc_en =
  		desc_buf[DEVICE_DESC_PARAM_WB_PRESRV_USRSPC_EN];
  
-@@ -8348,6 +8371,11 @@ static int ufs_get_device_desc(struct ufs_hba *hba)
+@@ -8362,6 +8385,11 @@ static int ufs_get_device_desc(struct ufs_hba *hba)
  
  	ufshcd_temp_notif_probe(hba, desc_buf);
  
 +	if (dev_info->wspecversion >= 0x410) {
-+		hba->critical_health_count = 0;
++		hba->dev_info.critical_health_count = 0;
 +		ufshcd_enable_ee(hba, MASK_EE_HEALTH_CRITICAL);
 +	}
 +
@@ -244,7 +244,7 @@ index 995609860..cbda37461 100644
  		ufshcd_ext_iid_probe(hba, desc_buf);
  
 diff --git a/drivers/ufs/host/ufs-mediatek.c b/drivers/ufs/host/ufs-mediatek.c
-index 0d30452c7..d1741c553 100644
+index 0d30452..d1741c5 100644
 --- a/drivers/ufs/host/ufs-mediatek.c
 +++ b/drivers/ufs/host/ufs-mediatek.c
 @@ -849,6 +849,69 @@ static void ufs_mtk_vreg_fix_vccqx(struct ufs_hba *hba)
@@ -317,7 +317,7 @@ index 0d30452c7..d1741c553 100644
  static void ufs_mtk_init_mcq_irq(struct ufs_hba *hba)
  {
  	struct ufs_mtk_host *host = ufshcd_get_variant(hba);
-@@ -891,6 +954,8 @@ static void ufs_mtk_init_mcq_irq(struct ufs_hba *hba)
+@@ -891,6 +954,8 @@ failed:
   * Returns -EPROBE_DEFER if binding fails, returns negative error
   * on phy power up failure and returns zero on success.
   */
@@ -431,28 +431,32 @@ index 0d30452c7..d1741c553 100644
  	if (ret)
  		return ret;
 diff --git a/include/ufs/ufs.h b/include/ufs/ufs.h
-index 8f779c51c..2e76649e3 100644
+index 8f779c5..f7380e0 100644
 --- a/include/ufs/ufs.h
 +++ b/include/ufs/ufs.h
-@@ -170,6 +170,9 @@ enum attr_idn {
+@@ -170,6 +170,11 @@ enum attr_idn {
  	QUERY_ATTR_IDN_WB_FLUSH_STATUS	        = 0x1C,
  	QUERY_ATTR_IDN_AVAIL_WB_BUFF_SIZE       = 0x1D,
  	QUERY_ATTR_IDN_WB_BUFF_LIFE_TIME_EST    = 0x1E,
++#ifndef __GENKSYMS__
 +	QUERY_ATTR_IDN_WB_BUF_RESIZE_HINT	= 0x3C,
 +	QUERY_ATTR_IDN_WB_BUF_RESIZE_EN		= 0x3D,
 +	QUERY_ATTR_IDN_WB_BUF_RESIZE_STATUS	= 0x3E,
++#endif
  	QUERY_ATTR_IDN_CURR_WB_BUFF_SIZE        = 0x1F,
  	QUERY_ATTR_IDN_EXT_IID_EN		= 0x2A,
  };
-@@ -280,6 +283,7 @@ enum device_desc_param {
+@@ -280,6 +285,9 @@ enum device_desc_param {
  	DEVICE_DESC_PARAM_PRDCT_REV		= 0x2A,
  	DEVICE_DESC_PARAM_HPB_VER		= 0x40,
  	DEVICE_DESC_PARAM_HPB_CONTROL		= 0x42,
++#ifndef __GENKSYMS__
 +	DEVICE_DESC_PARAM_EXT_WB_SUP		= 0x4D,
++#endif
  	DEVICE_DESC_PARAM_EXT_UFS_FEATURE_SUP	= 0x4F,
  	DEVICE_DESC_PARAM_WB_PRESRV_USRSPC_EN	= 0x53,
  	DEVICE_DESC_PARAM_WB_TYPE		= 0x54,
-@@ -374,6 +378,11 @@ enum {
+@@ -374,6 +382,11 @@ enum {
  	UFSHCD_AMP		= 3,
  };
  
@@ -464,15 +468,17 @@ index 8f779c51c..2e76649e3 100644
  /* Possible values for dExtendedUFSFeaturesSupport */
  enum {
  	UFS_DEV_HIGH_TEMP_NOTIF		= BIT(4),
-@@ -411,6 +420,7 @@ enum {
+@@ -411,6 +424,9 @@ enum {
  	MASK_EE_TOO_LOW_TEMP		= BIT(4),
  	MASK_EE_WRITEBOOSTER_EVENT	= BIT(5),
  	MASK_EE_PERFORMANCE_THROTTLING	= BIT(6),
++#ifndef __GENKSYMS__
 +	MASK_EE_HEALTH_CRITICAL		= BIT(9),
++#endif
  };
  #define MASK_EE_URGENT_TEMP (MASK_EE_TOO_HIGH_TEMP | MASK_EE_TOO_LOW_TEMP)
  
-@@ -445,6 +455,28 @@ enum ufs_ref_clk_freq {
+@@ -445,6 +461,28 @@ enum ufs_ref_clk_freq {
  	REF_CLK_FREQ_INVAL	= -1,
  };
  
@@ -501,27 +507,23 @@ index 8f779c51c..2e76649e3 100644
  /* Query response result code */
  enum {
  	QUERY_RESULT_SUCCESS                    = 0x00,
-@@ -630,6 +662,7 @@ struct ufs_dev_info {
- 	bool    wb_buf_flush_enabled;
- 	u8	wb_dedicated_lu;
- 	u8      wb_buffer_type;
-+	u16	ext_wb_sup;
- 
- 	bool	b_rpm_dev_flush_capable;
- 	u8	b_presrv_uspc_en;
-diff --git a/include/ufs/ufshcd.h b/include/ufs/ufshcd.h
-index 275141a1c..4c3c9e08f 100644
---- a/include/ufs/ufshcd.h
-+++ b/include/ufs/ufshcd.h
-@@ -1135,6 +1135,7 @@ struct ufs_hba {
- 	struct ufs_hw_queue *uhq;
- 	struct ufs_hw_queue *dev_cmd_queue;
- 	struct ufshcd_mcq_opr_info_t mcq_opr[OPR_MAX];
-+	u32 critical_health_count;
+@@ -640,7 +678,10 @@ struct ufs_dev_info {
+ 	bool	b_ext_iid_en;
  
  	ANDROID_OEM_DATA(1);
+-	ANDROID_KABI_RESERVE(1);
++	ANDROID_KABI_USE(1, struct {
++		u16 ext_wb_sup;
++		u32 critical_health_count;
++	});
  };
-@@ -1472,6 +1473,7 @@ int ufshcd_advanced_rpmb_req_handler(struct ufs_hba *hba, struct utp_upiu_req *r
+ 
+ /*
+diff --git a/include/ufs/ufshcd.h b/include/ufs/ufshcd.h
+index 275141a..28cd6bb 100644
+--- a/include/ufs/ufshcd.h
++++ b/include/ufs/ufshcd.h
+@@ -1472,6 +1472,7 @@ int ufshcd_advanced_rpmb_req_handler(struct ufs_hba *hba, struct utp_upiu_req *r
  				     struct scatterlist *sg_list, enum dma_data_direction dir);
  int ufshcd_wb_toggle(struct ufs_hba *hba, bool enable);
  int ufshcd_wb_toggle_buf_flush(struct ufs_hba *hba, bool enable);
