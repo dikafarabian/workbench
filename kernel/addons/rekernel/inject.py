@@ -259,6 +259,9 @@ MARKER = "Re:Kernel"
 DEFINE_STATE = "REKERNEL_DEFINE_STATE"
 
 
+GENKSYMS_HIDDEN_INCLUDE = '#ifndef __GENKSYMS__\n#include "rekernel.h"\n#endif'
+
+
 def read(path):
     with open(path, "r", encoding="utf-8") as f:
         return f.read()
@@ -317,7 +320,7 @@ def patch_binder_c(src):
         '#include "binder_internal.h"',
     ]
     content, ok_include = inject_include(
-        content, include_anchors, '#include "rekernel.h"', "binder.c include"
+        content, include_anchors, GENKSYMS_HIDDEN_INCLUDE, "binder.c include"
     )
     if not ok_include:
         print("  [ERROR] binder.c: cannot inject include — aborting patch!")
@@ -364,7 +367,7 @@ def patch_binder_alloc_c(src):
         "#include <linux/mm.h>",
     ]
     content, ok_include = inject_include(
-        content, include_anchors, '#include "rekernel.h"', "binder_alloc.c include"
+        content, include_anchors, GENKSYMS_HIDDEN_INCLUDE, "binder_alloc.c include"
     )
     if not ok_include:
         print("  [ERROR] binder_alloc.c: cannot inject include — aborting patch!")
@@ -417,8 +420,8 @@ def patch_signal_c(src):
     ]
     content, ok_include = inject_include(
         content, include_anchors,
-        f'#define {DEFINE_STATE}\n'
-        '#include "../drivers/android/rekernel.h"',
+        f'#ifndef __GENKSYMS__\n#define {DEFINE_STATE}\n'
+        '#include "../drivers/android/rekernel.h"\n#endif',
         "signal.c include"
     )
     if not ok_include:
