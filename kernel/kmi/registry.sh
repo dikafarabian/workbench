@@ -27,7 +27,7 @@ run_kmi_gate() {
     fi
 
     echo "::group::🚦 KMI Gate (${KMI_REFERENCE})"
-    if ! python3 "${ROOT_DIR}/kernel/kmi/gate.py" --reference "$reference_dir" --image "$image" --report "$report"; then
+    if ! python3 "${ROOT_DIR}/kernel/kmi/gate.py" --reference "$reference_dir" --image "$image" --report "$report" --limit 40; then
         echo "::endgroup::"
         error "KMI gate failed — the kernel does not keep the stock KMI (report: ${report})"
     fi
