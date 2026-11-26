@@ -41,6 +41,26 @@ ksu_publish_version() {
     log "Version: ${VARIANT_VERSION_DISPLAY}"
 }
 
+ksu_apply_pinned_commit() {
+    local key="$1" offset="$2" label="$3" ref_var="${1^^}_REF" candidate_var="CANDIDATE_${1^^}"
+    local ref="${!ref_var:-}" suffix="" patch_file mirror_url
+    [ -n "$ref" ] || error "${label}: no ${key} ref resolved!"
+    [ "$offset" -eq 0 ] || suffix="~${offset}"
+    patch_file="$(mktemp)"
+    mirror_url="$(mirror_clone_url "$key" 2>/dev/null || true)"
+    if [ "${!candidate_var:-false}" != "true" ] && [ -n "$mirror_url" ] \
+        && fetch -o "$patch_file" "${mirror_url%.git}/commit/${ref}${suffix}.patch" 2>/dev/null \
+        && [ -s "$patch_file" ]; then
+        log "${label}: ${ref:0:12}${suffix} from mirror"
+    else
+        fetch -o "$patch_file" "$(mirror_source_url "$key" | sed 's/\.git$//')/commit/${ref}${suffix}.patch" \
+            || error "${label}: failed to download ${ref:0:12}${suffix}!"
+        log "${label}: ${ref:0:12}${suffix} from upstream"
+    fi
+    apply_patch "$label" "$patch_file" "$KSU_DIR" --fuzz=3
+    rm -f "$patch_file"
+}
+
 ksu_enable_configs() {
     log "Enabling KSU configs..."
     gki_defconfig_enable "$@"

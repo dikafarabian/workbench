@@ -7,7 +7,7 @@ on:
       build_system:
         description: "Build System"
         type: choice
-        default: "Make - Neutron"
+        default: "Kleaf - AOSP"
         options:
           - "Kleaf - AOSP"
           - "Make - AOSP"
@@ -128,7 +128,7 @@ on:
       delivery_target:
         description: "Send Result To"
         type: choice
-        default: "Community"
+        default: "Private"
         options:
           - "Community"
           - "Private"
@@ -356,6 +356,7 @@ jobs:
           else
             COMPONENTS="$VARIANT_KEY"
           fi
+          [ "$VARIANT_KEY" != "midorisu" ] || COMPONENTS="$COMPONENTS midorisu_kow"
 
           bash kernel/ksu/checkpoint/engine.sh "$OUTCOME" $COMPONENTS
 
@@ -364,6 +365,15 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           path: post-stage/*.zip
+          archive: false
+          retention-days: 1
+          if-no-files-found: ignore
+
+      - name: "Upload Debug Symbols"
+        if: inputs.run_mode == 'Build' || inputs.run_mode == 'Release'
+        uses: actions/upload-artifact@v7
+        with:
+          path: debug-stage/*.tar.zst
           archive: false
           retention-days: 1
           if-no-files-found: ignore

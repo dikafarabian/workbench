@@ -1,6 +1,6 @@
 {
   "bakasu": {
-    "pin": "7b65bde0710b5e7c6f755545cb15a4abd417f3a8",
+    "pin": "57b2db6076f439cfd489f14576444e8f0f2f0a25",
     "skip": []
   },
   "susfs_bakasu": {
@@ -20,7 +20,7 @@
     "skip": []
   },
   "ksunext": {
-    "pin": "9940bcc8414555c2f9a282aa100c916104619d8e",
+    "pin": "6238557b3eb938f3b122b486db77ff149a4fcfa1",
     "skip": []
   },
   "susfs_ksunext": {
@@ -36,7 +36,7 @@
     "skip": []
   },
   "ksu": {
-    "pin": "2a60b2893b8d0d885d1ceff2287d8ad854f0e0f4",
+    "pin": "eeb3bbf8359434f5596b8a7875b54ac4e5fc5495",
     "skip": []
   },
   "susfs_ksu": {
@@ -52,7 +52,11 @@
     "skip": []
   },
   "midorisu": {
-    "pin": "b41393cc6976b1aa40475843252dd7c9d13ecb09",
+    "pin": "44758e199257bb973aa6ca5b3a393c1b21694408",
+    "skip": []
+  },
+  "midorisu_kow": {
+    "pin": "6c44e43a9c0ddc63211f45a812b2cf7caa9bd898",
     "skip": []
   },
   "susfs_midorisu": {

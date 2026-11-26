@@ -4,7 +4,7 @@
 # 🧬 SuSFS quirks — kernel 5.15
 # ======================================================
 
-SUSFS_KSU_ENABLE_VARIANTS="KSU KOWSU MIDORISU"
+SUSFS_KSU_ENABLE_VARIANTS="KSU KOWSU"
 
 susfs_before_kernel_patch() {
     grep -qF '#include <trace/hooks/blk.h>' "${KERNEL_SRC}/fs/namespace.c" || return 0

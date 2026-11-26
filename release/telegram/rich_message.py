@@ -169,6 +169,15 @@ def engine_chip(engine: str, link: bool, version: str = "") -> str:
         return chip(label, "primary" if engine != "None" else "")
     return f'<tg-button type="url" style="primary" url="{url}">{html_cell(label)}</tg-button>'
 
+def addon_enabled_chip(env, token: str, link: bool) -> str:
+    version = caption.addon_version(env, token)
+    if not version:
+        return chip("Enable", "success")
+    url = LINKS.get("addons", {}).get(token, "") if link else ""
+    if not url:
+        return chip(version, "primary")
+    return f'<tg-button type="url" style="primary" url="{url}">{html_cell(version)}</tg-button>'
+
 def addon_table(env, link_engine: bool = False) -> str:
     addon_tokens = [t for t in env.get("ADDONS", "").split(",") if t]
     skipped_addons = [t for t in env.get("SKIPPED_ADDONS", "").split(",") if t]
@@ -184,7 +193,7 @@ def addon_table(env, link_engine: bool = False) -> str:
         if token in skipped_addons:
             status = chip("N/A")
         elif token in addon_tokens:
-            status = chip("Enable", "success")
+            status = addon_enabled_chip(env, token, link_engine)
         else:
             status = chip("Disable", "danger")
         rows.append((name, status))

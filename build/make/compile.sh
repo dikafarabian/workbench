@@ -28,7 +28,6 @@ declare -A KBUILD_VERSION_LABEL=(
     [SUKISU]="SukiSU-Ultra version"
     [BAKASU]="BakaSU version code"
     [FINASU]="KernelSU version"
-    [MIDORISU]="KernelSU version"
 )
 
 correct_version_display() {
@@ -112,3 +111,4 @@ fi
 if [ "${DRY_RUN:-false}" != "true" ] && [ -f "${KBUILD_LOG:-}" ]; then
     correct_version_display
 fi
+[ "${DRY_RUN:-false}" = "true" ] || stage_debug_symbols "${OUT_DIR}/vmlinux" "${OUT_DIR}/System.map"

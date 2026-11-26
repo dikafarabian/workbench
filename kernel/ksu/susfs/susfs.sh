@@ -7,6 +7,7 @@
 #
 # Per-kernel differences live in quirks/<kernel_version>.sh (optional):
 #   SUSFS_KSU_ENABLE_VARIANTS   variants that need the 10_enable KernelSU patch
+#   SUSFS_DEINLINED_VARIANTS    variants applied de-inlined: kernel patch stripped by deinline.py, KernelSU patch from the checkpoint-tracked <variant>_kow ref (set here)
 #   susfs_before_kernel_patch   runs before the kernel patch is applied
 #   susfs_after_kernel_patch    runs after the kernel patch is applied
 #   susfs_after_ksu_enable      runs after the 10_enable step
@@ -29,6 +30,7 @@ if [ "$KERNEL_VARIANT" = "SUKISU" ] && [ -z "$SUSFS_REF" ]; then
 fi
 
 SUSFS_KSU_ENABLE_VARIANTS=""
+SUSFS_DEINLINED_VARIANTS="MIDORISU"
 susfs_before_kernel_patch() { :; }
 susfs_after_kernel_patch() { :; }
 susfs_after_ksu_enable() { :; }
@@ -80,6 +82,14 @@ log "SuSFS source files copied ✅"
 
 log "Applying SuSFS kernel patch..."
 KERNEL_PATCH="${SUSFS_DIR}/kernel_patches/50_add_susfs_in_gki-$(resolve_android_version)-${KERNEL_VERSION}.patch"
+SUSFS_DEINLINED="false"
+if [[ " ${SUSFS_DEINLINED_VARIANTS} " == *" ${KERNEL_VARIANT} "* ]]; then
+    SUSFS_DEINLINED="true"
+    DEINLINED_PATCH="${SUSFS_DIR}/kernel_patches/deinlined.patch"
+    python3 "${SUSFS_LOCAL_DIR}/deinline.py" "$KERNEL_PATCH" "$DEINLINED_PATCH" \
+        || error "SuSFS: de-inlining the kernel patch failed!"
+    KERNEL_PATCH="$DEINLINED_PATCH"
+fi
 if patch_is_applied "$KERNEL_PATCH" "$KERNEL_SRC" --fuzz=3; then
     log "SuSFS kernel patch already applied, skipping."
 else
@@ -88,7 +98,10 @@ else
     susfs_after_kernel_patch
 fi
 
-if [[ " ${SUSFS_KSU_ENABLE_VARIANTS} " == *" ${KERNEL_VARIANT} "* ]]; then
+if [ "$SUSFS_DEINLINED" = "true" ]; then
+    ksu_apply_pinned_commit "${KERNEL_VARIANT,,}_kow" 0 "SuSFS de-inlined (${KERNEL_VARIANT})"
+    susfs_after_ksu_enable
+elif [[ " ${SUSFS_KSU_ENABLE_VARIANTS} " == *" ${KERNEL_VARIANT} "* ]]; then
     KSU_PATCH="${SUSFS_LOCAL_DIR}/patches/10_enable_susfs_for_${KERNEL_VARIANT,,}.patch"
     [ -f "$KSU_PATCH" ] || KSU_PATCH="${SUSFS_DIR}/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch"
     apply_patch "SuSFS 10_enable (${KERNEL_VARIANT})" "$KSU_PATCH" "$KSU_DIR" --fuzz=3

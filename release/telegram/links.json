@@ -9,5 +9,9 @@
   },
   "mountless": {
     "NoMount": "https://github.com/maxsteeel/nomount/releases"
+  },
+  "addons": {
+    "droidspaces": "https://github.com/ravindu644/Droidspaces-OSS",
+    "rekernel": "https://github.com/Sakion-Team/Re-Kernel"
   }
 }

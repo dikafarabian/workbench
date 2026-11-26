@@ -88,20 +88,8 @@
       "name": "Kcompressd",
       "versions": ["6.1"]
     },
-    "workqueue_catchup": {
-      "name": "Workqueue Catch-up",
-      "versions": ["6.1"]
-    },
-    "schedutil_catchup": {
-      "name": "Schedutil Catch-up",
-      "versions": ["6.1"]
-    },
     "reflex": {
       "name": "Reflex",
-      "versions": ["6.1"]
-    },
-    "ufs_writebooster_catchup": {
-      "name": "UFS WriteBooster Catch-up",
       "versions": ["6.1"]
     },
     "adios": {

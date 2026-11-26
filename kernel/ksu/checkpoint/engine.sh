@@ -80,6 +80,7 @@ component_label() {
             echo "SuSFS ($(variant_display_name "${fork^^}"))"
             ;;
         sukisu_builtin)     echo "$(variant_display_name SUKISU) (builtin)" ;;
+        midorisu_kow)       echo "$(variant_display_name MIDORISU) (extras)" ;;
         *)                  variant_display_name "${key^^}" ;;
     esac
 }

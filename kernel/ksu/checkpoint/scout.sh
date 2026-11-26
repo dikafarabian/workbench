@@ -161,7 +161,8 @@ case "$KERNEL_VARIANT" in
         fi
         ;;
     MIDORISU)
-        track_commit midorisu MIDORISU "MidoriSU (main)" midori01/KernelSU main
+        track_commit midorisu MIDORISU "MidoriSU base (KowSU master)" KOWX712/KernelSU master
+        track_commit midorisu_kow MIDORISU_KOW "MidoriSU extras (kow)" midori01/KernelSU kow
         if susfs_active; then
             track_susfs susfs_midorisu SUSFS_MIDORISU "SuSFS (MidoriSU pairing)"
         fi

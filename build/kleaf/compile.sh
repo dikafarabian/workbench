@@ -53,6 +53,7 @@ else
 
     BUILD_SECONDS=$(( $(date +%s) - START_TIME ))
     log "Kleaf build completed in ${BUILD_SECONDS}s ✅"
+    stage_debug_symbols "${KLEAF_OUT_DIR}/vmlinux" "${KLEAF_OUT_DIR}/System.map"
 
     log "Diagnostic: inspecting version-string sources..."
     cd "$KERNEL_DIR"
