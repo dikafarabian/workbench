@@ -66,7 +66,7 @@
   "patches": {
     "bore": {
       "name": "BORE",
-      "versions": []
+      "versions": ["6.1"]
     },
     "bbrv3": {
       "name": "BBRv3",
@@ -88,21 +88,9 @@
       "name": "Kcompressd",
       "versions": []
     },
-    "workqueue_catchup": {
-      "name": "Workqueue Catch-up",
-      "versions": []
-    },
-    "schedutil_catchup": {
-      "name": "Schedutil Catch-up",
-      "versions": []
-    },
     "reflex": {
       "name": "Reflex",
-      "versions": []
-    },
-    "ufs_writebooster_catchup": {
-      "name": "UFS WriteBooster Catch-up",
-      "versions": []
+      "versions": ["6.1"]
     },
     "adios": {
       "name": "ADIOS",
