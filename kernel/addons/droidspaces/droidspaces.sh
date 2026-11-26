@@ -2,6 +2,7 @@
 
 # ======================================================
 # 📦 ADDON — Droidspaces (container namespace and cgroup support)
+# Repo: https://github.com/ravindu644/Droidspaces-OSS
 # ======================================================
 
 log "Enabling Droidspaces support..."
@@ -41,3 +42,9 @@ else
     log "Droidspaces: all required configs already present"
 fi
 log "Droidspaces configs enabled ✅"
+
+DROIDSPACES_REPO="https://github.com/ravindu644/Droidspaces-OSS"
+DROIDSPACES_VERSION="$(git ls-remote --tags --refs --sort=-v:refname "$DROIDSPACES_REPO" 2>/dev/null | sed -n '1s#.*refs/tags/##p')" || true
+if [ -n "$DROIDSPACES_VERSION" ]; then
+    log "Droidspaces version: ${DROIDSPACES_VERSION}"
+fi
