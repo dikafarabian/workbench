@@ -7,7 +7,7 @@
 #
 # Per-kernel differences live in quirks/<kernel_version>.sh (optional):
 #   SUSFS_KSU_ENABLE_VARIANTS   variants that need the 10_enable KernelSU patch
-#   SUSFS_DEINLINED_VARIANTS    variants applied with the de-inlined kernel patch (set here)
+#   SUSFS_DEINLINED_VARIANTS    variants applied de-inlined: kernel patch stripped by deinline.py, KernelSU patch from the checkpoint-tracked <variant>_deinlined ref (set here)
 #   susfs_before_kernel_patch   runs before the kernel patch is applied
 #   susfs_after_kernel_patch    runs after the kernel patch is applied
 #   susfs_after_ksu_enable      runs after the 10_enable step
@@ -99,7 +99,25 @@ else
 fi
 
 if [ "$SUSFS_DEINLINED" = "true" ]; then
-    apply_patch "SuSFS de-inlined (${KERNEL_VARIANT})" "${SUSFS_LOCAL_DIR}/patches/deinlined_for_${KERNEL_VARIANT,,}.patch" "$KSU_DIR" --fuzz=3
+    DEINLINED_KEY="${KERNEL_VARIANT,,}_deinlined"
+    DEINLINED_REF_VAR="${DEINLINED_KEY^^}_REF"
+    DEINLINED_CANDIDATE_VAR="CANDIDATE_${DEINLINED_KEY^^}"
+    DEINLINED_REF="${!DEINLINED_REF_VAR:-}"
+    [ -n "$DEINLINED_REF" ] || error "SuSFS: no de-inlined ref resolved for ${KERNEL_VARIANT}!"
+    DEINLINED_KSU_PATCH="$(mktemp)"
+    DEINLINED_UPSTREAM_URL="$(mirror_source_url "$DEINLINED_KEY")"
+    DEINLINED_MIRROR_URL="$(mirror_clone_url "$DEINLINED_KEY" 2>/dev/null || true)"
+    if [ "${!DEINLINED_CANDIDATE_VAR:-false}" != "true" ] && [ -n "$DEINLINED_MIRROR_URL" ] \
+        && fetch -o "$DEINLINED_KSU_PATCH" "${DEINLINED_MIRROR_URL%.git}/commit/${DEINLINED_REF}.patch" 2>/dev/null \
+        && [ -s "$DEINLINED_KSU_PATCH" ]; then
+        log "SuSFS: de-inlined patch ${DEINLINED_REF:0:12} from mirror"
+    else
+        fetch -o "$DEINLINED_KSU_PATCH" "${DEINLINED_UPSTREAM_URL%.git}/commit/${DEINLINED_REF}.patch" \
+            || error "SuSFS: failed to download de-inlined patch ${DEINLINED_REF:0:12}!"
+        log "SuSFS: de-inlined patch ${DEINLINED_REF:0:12} from upstream"
+    fi
+    apply_patch "SuSFS de-inlined (${KERNEL_VARIANT})" "$DEINLINED_KSU_PATCH" "$KSU_DIR" --fuzz=3
+    rm -f "$DEINLINED_KSU_PATCH"
     susfs_after_ksu_enable
 elif [[ " ${SUSFS_KSU_ENABLE_VARIANTS} " == *" ${KERNEL_VARIANT} "* ]]; then
     KSU_PATCH="${SUSFS_LOCAL_DIR}/patches/10_enable_susfs_for_${KERNEL_VARIANT,,}.patch"

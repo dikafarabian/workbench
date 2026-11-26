@@ -55,6 +55,10 @@
     "pin": "a9cb5ad90a456a02908827c6cf90333c975f34d9",
     "skip": []
   },
+  "midorisu_deinlined": {
+    "pin": "",
+    "skip": []
+  },
   "susfs_midorisu": {
     "pin": "f76b81f2a6bf98e4029cc0c823c054edbec29803",
     "skip": []

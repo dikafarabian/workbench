@@ -163,6 +163,7 @@ case "$KERNEL_VARIANT" in
     MIDORISU)
         track_commit midorisu MIDORISU "MidoriSU (main)" midori01/KernelSU main
         if susfs_active; then
+            track_commit midorisu_deinlined MIDORISU_DEINLINED "MidoriSU de-inlined SuSFS (kow)" midori01/KernelSU kow
             track_susfs susfs_midorisu SUSFS_MIDORISU "SuSFS (MidoriSU pairing)"
         fi
         ;;
