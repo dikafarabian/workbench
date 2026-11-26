@@ -352,10 +352,10 @@ jobs:
               *)       FORK_KEY="$VARIANT_KEY" ;;
             esac
             COMPONENTS="$FORK_KEY susfs_${VARIANT_KEY}"
-            [ "$VARIANT_KEY" != "midorisu" ] || COMPONENTS="$COMPONENTS midorisu_deinlined"
           else
             COMPONENTS="$VARIANT_KEY"
           fi
+          [ "$VARIANT_KEY" != "midorisu" ] || COMPONENTS="$COMPONENTS midorisu_kow"
 
           bash kernel/ksu/checkpoint/engine.sh "$OUTCOME" $COMPONENTS
 
