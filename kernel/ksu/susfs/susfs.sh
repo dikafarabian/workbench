@@ -118,6 +118,8 @@ if [ "$SUSFS_DEINLINED" = "true" ]; then
     fi
     apply_patch "SuSFS de-inlined (${KERNEL_VARIANT})" "$DEINLINED_KSU_PATCH" "$KSU_DIR" --fuzz=3
     rm -f "$DEINLINED_KSU_PATCH"
+    python3 "${ROOT_DIR}/kernel/ksu/variants/${KERNEL_VARIANT,,}/hook_label.py" "$KSU_DIR" \
+        || warn "SuSFS: hook type label not updated — manager will show the upstream label"
     susfs_after_ksu_enable
 elif [[ " ${SUSFS_KSU_ENABLE_VARIANTS} " == *" ${KERNEL_VARIANT} "* ]]; then
     KSU_PATCH="${SUSFS_LOCAL_DIR}/patches/10_enable_susfs_for_${KERNEL_VARIANT,,}.patch"
