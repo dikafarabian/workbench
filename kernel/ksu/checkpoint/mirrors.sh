@@ -67,7 +67,12 @@ mirror_push_url() {
 }
 
 mirror_branch() {
-    echo "pin/$2/$1"
+    local source_branch="${GITHUB_REF_NAME:-main}"
+    if [ "$source_branch" = "main" ]; then
+        echo "pin/$2/$1"
+    else
+        echo "pin/${source_branch//\//-}/$2/$1"
+    fi
 }
 
 mirror_promote() {

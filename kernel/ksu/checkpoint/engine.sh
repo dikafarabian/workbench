@@ -29,6 +29,7 @@ init_remote() {
     git config --global user.email "luminaire-bot@users.noreply.github.com"
 
     REMOTE="https://x-access-token:${PERSONAL_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+    CHECKPOINT_BRANCH="${GITHUB_REF_NAME:-main}"
 }
 
 apply_and_push() {
@@ -38,7 +39,7 @@ apply_and_push() {
     init_remote
 
     while [ "$attempt" -le "$max_attempts" ]; do
-        run_quiet git fetch "$REMOTE" main
+        run_quiet git fetch "$REMOTE" "$CHECKPOINT_BRANCH"
         git reset -q --hard FETCH_HEAD
 
         mkdir -p "$(dirname "$MANIFEST")"
@@ -51,7 +52,7 @@ apply_and_push() {
         (
             git add "$MANIFEST_REL"
             git commit -q -m "$commit_msg" 2>/dev/null || { echo "nothing to commit"; exit 0; }
-            git push "$REMOTE" "HEAD:main"
+            git push "$REMOTE" "HEAD:${CHECKPOINT_BRANCH}"
         ) && return 0
 
         warn "checkpoint: push conflict (attempt ${attempt}/${max_attempts}) — retrying..."
@@ -106,6 +107,7 @@ open_proposals() {
 
 close_proposals() {
     local key="$1" comment="$2" keep_branch="${3:-}" number branch
+    [ "$CHECKPOINT_BRANCH" = "main" ] || return 0
     while read -r number branch; do
         [ -n "$number" ] || continue
         [ "$branch" = "$keep_branch" ] && continue
@@ -198,6 +200,10 @@ ${others%$'\n'}"
 file_proposal() {
     local key="$1" ref="$2" others="$3"
     local branch existing
+    if [ "$CHECKPOINT_BRANCH" != "main" ]; then
+        log "checkpoint: skip proposals are only opened from main — ${key} ${ref:0:12} not proposed"
+        return 0
+    fi
     branch="$(proposal_prefix "$key")${ref:0:12}"
 
     existing="$(open_proposals "$key")"
