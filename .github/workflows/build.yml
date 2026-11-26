@@ -369,6 +369,15 @@ jobs:
           retention-days: 1
           if-no-files-found: ignore
 
+      - name: "Upload KMI Report"
+        if: always() && hashFiles('debug-stage/kmi-report-*.json') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          path: debug-stage/kmi-report-*.json
+          archive: false
+          retention-days: 1
+          if-no-files-found: ignore
+
       - name: "Upload Debug Symbols"
         if: inputs.run_mode == 'Build' || inputs.run_mode == 'Release'
         uses: actions/upload-artifact@v7
