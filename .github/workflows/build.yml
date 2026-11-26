@@ -368,6 +368,15 @@ jobs:
           retention-days: 1
           if-no-files-found: ignore
 
+      - name: "Upload Debug Symbols"
+        if: inputs.run_mode == 'Build' || inputs.run_mode == 'Release'
+        uses: actions/upload-artifact@v7
+        with:
+          path: debug-stage/*.tar.zst
+          archive: false
+          retention-days: 1
+          if-no-files-found: ignore
+
       - name: "Save Build Caches"
         if: always() && env.IS_MAKE == 'true'
         timeout-minutes: 15

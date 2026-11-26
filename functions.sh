@@ -347,3 +347,17 @@ mode_emoji() {
         *)         echo "❓" ;;
     esac
 }
+
+stage_debug_symbols() {
+    local vmlinux="$1" system_map="$2" tmp_dir
+    if [ ! -f "$vmlinux" ] || [ ! -f "$system_map" ]; then
+        warn "Debug symbols not found — skipping"
+        return 0
+    fi
+    tmp_dir="$(mktemp -d)"
+    cp "$vmlinux" "$system_map" "$tmp_dir/"
+    mkdir -p "${ROOT_DIR}/debug-stage"
+    tar -C "$tmp_dir" -cf - . | zstd -19 -T0 -q -f -o "${ROOT_DIR}/debug-stage/debug-${KERNEL_VARIANT,,}.tar.zst"
+    rm -rf "$tmp_dir"
+    log "Debug symbols staged ✅"
+}

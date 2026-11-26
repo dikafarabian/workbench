@@ -111,3 +111,4 @@ fi
 if [ "${DRY_RUN:-false}" != "true" ] && [ -f "${KBUILD_LOG:-}" ]; then
     correct_version_display
 fi
+[ "${DRY_RUN:-false}" = "true" ] || stage_debug_symbols "${OUT_DIR}/vmlinux" "${OUT_DIR}/System.map"
