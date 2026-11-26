@@ -9,5 +9,8 @@
   },
   "mountless": {
     "NoMount": "https://github.com/maxsteeel/nomount/releases"
+  },
+  "addons": {
+    "rekernel": "https://github.com/Sakion-Team/Re-Kernel"
   }
 }
