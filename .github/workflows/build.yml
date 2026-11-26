@@ -7,7 +7,7 @@ on:
       build_system:
         description: "Build System"
         type: choice
-        default: "Kleaf - AOSP"
+        default: "Make - Neutron"
         options:
           - "Kleaf - AOSP"
           - "Make - AOSP"
@@ -28,7 +28,7 @@ on:
       kernel_branch_override:
         description: "Kernel Branch"
         type: choice
-        default: "lts"
+        default: "base"
         options:
           - "base"
           - "lts"
@@ -259,7 +259,7 @@ jobs:
       LOCALVERSION_OVERRIDE:      ${{ inputs.localversion_override }}
       BUILD_IDENTITY_OVERRIDE:  "chainonyourdoor@LuminaireCI"
       LTO_MODE:                  ${{ inputs.lto_mode }}
-      KMI_REFERENCE:             ${{ vars.KMI_REFERENCE }}
+      KMI_REFERENCE:             duchamp
       RUN_MODE:                    ${{ inputs.run_mode }}
       DRY_RUN:                     ${{ inputs.run_mode == 'Dry Run' }}
       BUILD_SYSTEM:                ${{ inputs.build_system }}
