@@ -128,7 +128,7 @@ on:
       delivery_target:
         description: "Send Result To"
         type: choice
-        default: "Community"
+        default: "Private"
         options:
           - "Community"
           - "Private"
