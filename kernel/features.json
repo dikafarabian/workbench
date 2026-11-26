@@ -74,7 +74,7 @@
     },
     "bbg": {
       "name": "BBG",
-      "versions": ["5.10", "5.15", "6.6", "6.12"]
+      "versions": ["5.10", "5.15", "6.1", "6.6", "6.12"]
     },
     "wireguard": {
       "name": "WireGuard",
@@ -82,11 +82,11 @@
     },
     "le9uo": {
       "name": "le9uo",
-      "versions": []
+      "versions": ["6.1"]
     },
     "kcompressd": {
       "name": "Kcompressd",
-      "versions": []
+      "versions": ["6.1"]
     },
     "reflex": {
       "name": "Reflex",
@@ -94,7 +94,7 @@
     },
     "adios": {
       "name": "ADIOS",
-      "versions": []
+      "versions": ["6.1"]
     }
   },
   "ksu": {
