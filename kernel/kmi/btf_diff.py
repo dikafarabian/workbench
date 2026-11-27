@@ -92,7 +92,7 @@ class Btf:
         if kind in (4, 5):
             if name:
                 return f"{KIND_NAMES[kind]} {name}/{size_type}"
-            return f"anon {KIND_NAMES[kind]}/{size_type}:" + ",".join(self.layout_members(type_id, depth + 1))
+            return f"anon {KIND_NAMES[kind]}/{size_type}"
         if kind in (6, 19):
             return f"enum {name}/{size_type}"
         if kind == 7:
@@ -101,7 +101,7 @@ class Btf:
             return self.describe(size_type, depth + 1)
         return f"kind{kind}"
 
-    def layout_members(self, type_id, depth=0):
+    def layout_members(self, type_id, depth=0, base=0, prefix=""):
         name, kind, kind_flag, size_type, members = self.types[type_id]
         result = []
         for member_name, member_type, offset in members:
@@ -109,8 +109,18 @@ class Btf:
                 bit_offset, bit_size = offset & 0xFFFFFF, offset >> 24
             else:
                 bit_offset, bit_size = offset, 0
-            result.append(f"{self.name(member_name)}@{bit_offset}:{bit_size}={self.describe(member_type, depth)}")
+            member = self.name(member_name)
+            target = self.strip(member_type)
+            if not member and target and self.types[target][1] in (4, 5) and not self.types[target][0]:
+                result.extend(self.layout_members(target, depth, base + bit_offset, f"{prefix}{'u' if self.types[target][1] == 5 else 's'}."))
+                continue
+            result.append(f"{prefix}{member}@{base + bit_offset}:{bit_size}={self.describe(member_type, depth)}")
         return result
+
+    def strip(self, type_id):
+        while type_id and self.types[type_id][1] in (8, 9, 10, 11, 18):
+            type_id = self.types[type_id][3]
+        return type_id
 
     def collect(self):
         layouts = {}
@@ -130,8 +140,7 @@ class Btf:
 
 
 def member_key(index, member):
-    name = member.split("=", 1)[0].split("@")[0]
-    return name or f"<anon{index}>"
+    return member.split("=", 1)[0].split("@")[0]
 
 
 def summarize(kind, old, new):
