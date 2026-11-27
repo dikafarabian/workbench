@@ -16,6 +16,13 @@ import sys
 
 BTF_HEADER = re.compile(rb"\x9f\xeb\x01\x00\x18\x00\x00\x00")
 KIND_NAMES = {4: "struct", 5: "union", 6: "enum", 19: "enum"}
+PRIORITY = (
+    "task_struct", "mm_struct", "page", "folio", "vm_area_struct", "vm_struct", "device",
+    "dma_buf", "dma_buf_attachment", "sg_table", "scatterlist", "kmem_cache", "zone",
+    "pglist_data", "address_space", "inode", "file", "module", "bio", "request_queue",
+    "net_device", "sk_buff", "sock", "cgroup", "css_set", "mem_cgroup", "lruvec",
+)
+WIDTH_MASK = (1 << 32) - 1
 
 
 def find_btf(data):
@@ -138,7 +145,7 @@ def summarize(kind, old, new):
         for name in old_values:
             if name not in new_values:
                 lines.append(f"removed {name}={old_values[name]}")
-            elif old_values[name] != new_values[name]:
+            elif (old_values[name] & WIDTH_MASK) != (new_values[name] & WIDTH_MASK):
                 lines.append(f"changed {name}={old_values[name]} -> {new_values[name]}")
         for name in new_values:
             if name not in old_values:
@@ -170,6 +177,8 @@ def diff(stock, ours):
             lines = summarize(key[0], only_old[0], only_new[0])
         except (AttributeError, IndexError, TypeError, ValueError) as error:
             lines = [f"layout differs (summary failed: {error})"]
+        if key[0] == "enum" and not lines:
+            continue
         structural = any(not line.startswith("changed") for line in lines) or key[0] == "enum"
         (own if structural else nested).append((key, lines))
     return own, nested
@@ -184,7 +193,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--reference", required=True)
     parser.add_argument("--image", required=True)
-    parser.add_argument("--limit", type=int, default=40)
+    parser.add_argument("--limit", type=int, default=400)
     args = parser.parse_args()
 
     with open(args.image, "rb") as handle:
@@ -200,11 +209,19 @@ def main():
           f"{len(set(stock) & set(ours))} shared")
     print(f"btf: {len(own)} types differ in their own layout, {len(nested)} only through a nested type")
     for key, lines in own[: args.limit]:
-        print(f"  {key[0]} {key[1]}")
-        for line in lines[:6]:
-            print(f"      {line[:200]}")
+        added = sum(1 for line in lines if line.startswith("added"))
+        removed = sum(1 for line in lines if line.startswith("removed"))
+        changed = sum(1 for line in lines if line.startswith("changed"))
+        size = next((line for line in lines if line.startswith("size")), "")
+        print(f"  {key[0]} {key[1]}: {size} +{added} -{removed} ~{changed}")
+    print("btf: details for key types")
+    for key, lines in own + nested:
+        if key[1] in PRIORITY:
+            print(f"  {key[0]} {key[1]}")
+            for line in lines[:8]:
+                print(f"      {line[:220]}")
     if nested:
-        print("btf: nested-only: " + ", ".join(f"{k[1]}" for k, _ in nested[:30]))
+        print("btf: nested-only: " + ", ".join(k[1] for k, _ in nested))
     return 0
 
 
