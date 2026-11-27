@@ -143,6 +143,11 @@ def member_key(index, member):
     return member.split("=", 1)[0].split("@")[0]
 
 
+def moved(line):
+    offsets = re.findall(r"@(\d+):", line)
+    return len(offsets) >= 2 and offsets[0] != offsets[1]
+
+
 def summarize(kind, old, new):
     old_size, old_members = old
     new_size, new_members = new
@@ -188,7 +193,8 @@ def diff(stock, ours):
             lines = [f"layout differs (summary failed: {error})"]
         if key[0] == "enum" and not lines:
             continue
-        structural = any(not line.startswith("changed") for line in lines) or key[0] == "enum"
+        structural = (any(not line.startswith("changed") for line in lines)
+                      or key[0] == "enum" or any(moved(line) for line in lines))
         (own if structural else nested).append((key, lines))
     return own, nested
 
