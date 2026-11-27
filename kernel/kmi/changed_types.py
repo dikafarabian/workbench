@@ -5,35 +5,67 @@
 # ======================================================
 # Usage: changed_types.py --reference kernel/kmi/ref/NAME --report FILE --symtypes DIR [--limit N]
 # Reads genksyms .symtypes dumps (KBUILD_SYMTYPES=1) and the gate report.
-# A type used by any symbol whose CRC still matches the stock ROM is unchanged,
-# so every changed type must sit outside that set; leaf types in what remains
-# were modified directly.
+# Every type is fingerprinted per file with its children expanded, because the
+# same name can be fully expanded in one file and opaque in another.
+# A type version used by a symbol whose CRC still matches the stock ROM is
+# unchanged; leaf type versions left over in the changed symbols were modified.
 
 import argparse
+import hashlib
 import json
 import os
 import re
 import sys
 
-TYPE_REF = re.compile(r"\b[a-z]#[A-Za-z0-9_.$]+")
+sys.setrecursionlimit(20000)
+
+TYPE_REF = re.compile(r"[a-z]#[A-Za-z0-9_.$]+")
 
 
-def load_symtypes(root):
+def parse_file(path):
     definitions = {}
-    files = 0
-    for directory, _, names in os.walk(root):
-        for name in names:
-            if not name.endswith(".symtypes"):
+    with open(path, errors="replace") as handle:
+        for line in handle:
+            if line.startswith("#"):
                 continue
-            files += 1
-            with open(os.path.join(directory, name), errors="replace") as handle:
-                for line in handle:
-                    key, _, body = line.rstrip("\n").partition(" ")
-                    if not body:
-                        continue
-                    if key not in definitions or len(body) > len(definitions[key]):
-                        definitions[key] = body
-    return definitions, files
+            key, _, body = line.rstrip("\n").partition(" ")
+            if body:
+                definitions[key] = body
+    return definitions
+
+
+def fingerprint_file(definitions):
+    children = {key: [t for t in body.split(" ") if TYPE_REF.fullmatch(t) and t != key]
+                for key, body in definitions.items()}
+    memo = {}
+
+    def fingerprint(key, stack):
+        if key in memo:
+            return memo[key]
+        body = definitions.get(key)
+        if body is None or key in stack:
+            return key
+        stack.add(key)
+        parts = [fingerprint(tok, stack) if TYPE_REF.fullmatch(tok) and tok != key else tok
+                 for tok in body.split(" ")]
+        stack.discard(key)
+        digest = hashlib.blake2b(" ".join(parts).encode(), digest_size=8).hexdigest()
+        memo[key] = f"{key}@{digest}"
+        return memo[key]
+
+    return children, fingerprint
+
+
+def closure(start, children):
+    seen = set()
+    stack = list(start)
+    while stack:
+        node = stack.pop()
+        if node in seen:
+            continue
+        seen.add(node)
+        stack.extend(children.get(node, ()))
+    return seen
 
 
 def load_reference_names(reference_dir):
@@ -54,11 +86,6 @@ def main():
     parser.add_argument("--limit", type=int, default=30)
     args = parser.parse_args()
 
-    definitions, files = load_symtypes(args.symtypes)
-    if not definitions:
-        print("types: no .symtypes found — nothing to analyse")
-        return 0
-
     with open(args.report) as handle:
         report = json.load(handle)
     scope = report.get("strict") or report["imports"]
@@ -66,53 +93,64 @@ def main():
     missing = set(scope["missing"])
     unchanged = load_reference_names(args.reference) - changed - missing
 
-    refs = {key: set(TYPE_REF.findall(body)) for key, body in definitions.items()}
+    files = 0
+    symbols = {}
+    type_children = {}
+    type_name = {}
+    type_body = {}
+    for directory, _, names in os.walk(args.symtypes):
+        for name in names:
+            if not name.endswith(".symtypes"):
+                continue
+            files += 1
+            definitions = parse_file(os.path.join(directory, name))
+            children, fingerprint = fingerprint_file(definitions)
+            for key, body in definitions.items():
+                if "#" in key.split(" ")[0] and TYPE_REF.fullmatch(key):
+                    version = fingerprint(key, set())
+                    if version not in type_children:
+                        type_children[version] = {fingerprint(c, set()) for c in children[key]}
+                        type_body[version] = body
+                elif key in changed or key in unchanged:
+                    reach = closure(children[key], children)
+                    symbols[key] = ({fingerprint(r, set()) for r in reach}, body)
+
+    if not symbols:
+        print("types: no .symtypes found — nothing to analyse")
+        return 0
 
     safe = set()
-    stack = [t for sym in unchanged for t in refs.get(sym, ())]
-    while stack:
-        node = stack.pop()
-        if node in safe:
-            continue
-        safe.add(node)
-        stack.extend(refs.get(node, ()))
+    for sym in unchanged:
+        if sym in symbols:
+            safe |= symbols[sym][0]
 
-    changed_symbols = [s for s in changed if s in refs]
     suspects = set()
-    stack = [t for sym in changed_symbols for t in refs[sym] if t not in safe]
-    while stack:
-        node = stack.pop()
-        if node in suspects:
-            continue
-        suspects.add(node)
-        stack.extend(t for t in refs.get(node, ()) if t not in safe)
-
-    leaves = {t for t in suspects if not any(c in suspects for c in refs.get(t, ()))}
-
-    affected = {t: 0 for t in leaves}
     own_declaration = []
-    for sym in changed_symbols:
-        seen = set()
-        stack = [t for t in refs[sym] if t in suspects]
-        if not stack:
+    for sym in changed:
+        if sym not in symbols:
+            continue
+        found = symbols[sym][0] - safe
+        suspects |= found
+        if not found:
             own_declaration.append(sym)
-        while stack:
-            node = stack.pop()
-            if node in seen:
-                continue
-            seen.add(node)
-            stack.extend(c for c in refs.get(node, ()) if c in suspects)
-        for leaf in leaves & seen:
-            affected[leaf] += 1
 
-    print(f"types: {files} symtypes files, {len(definitions)} entries")
-    print(f"types: {len(changed_symbols)}/{len(changed)} changed symbols have type data, "
-          f"{len(unchanged)} unchanged symbols pin {len(safe)} types as stable")
-    print(f"types: {len(suspects)} suspect types, {len(leaves)} modified directly")
-    print(f"types: {len(own_declaration)} changed symbols differ only in their own declaration")
-    for leaf in sorted(leaves, key=lambda t: -affected[t])[: args.limit]:
-        body = definitions.get(leaf, "")
-        print(f"  {leaf}  affects {affected[leaf]} symbols  {body[:240]}")
+    leaves = {v for v in suspects
+              if not any(c in suspects for c in type_children.get(v, ()))}
+
+    affected = {v: 0 for v in leaves}
+    for sym in changed:
+        if sym in symbols:
+            for leaf in leaves & symbols[sym][0]:
+                affected[leaf] += 1
+
+    print(f"types: {files} symtypes files, {len(symbols)} exported symbols with type data")
+    print(f"types: {len(unchanged & set(symbols))} unchanged symbols pin {len(safe)} type versions as stable")
+    print(f"types: {len(suspects)} suspect type versions, {len(leaves)} modified directly")
+    print(f"types: {len(own_declaration)}/{len(changed & set(symbols))} changed symbols have no suspect type")
+    for leaf in sorted(leaves, key=lambda v: -affected[v])[: args.limit]:
+        print(f"  {leaf.split('@')[0]}  affects {affected[leaf]} symbols  {type_body.get(leaf, '')[:240]}")
+    for sym in sorted(own_declaration)[:8]:
+        print(f"  decl {sym}: {symbols[sym][1][:200]}")
     return 0
 
 
