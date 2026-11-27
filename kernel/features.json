@@ -95,6 +95,10 @@
     "adios": {
       "name": "ADIOS",
       "versions": ["6.1"]
+    },
+    "nomap_revert": {
+      "name": "No-map revert",
+      "versions": ["6.1"]
     }
   },
   "ksu": {
