@@ -73,8 +73,6 @@ if [ "$NEEDS_WRAPPER" = "1" ]; then
     fi
 fi
 
-[ -z "${KMI_REFERENCE:-}" ] || export KBUILD_SYMTYPES=1
-
 touch "${KERNEL_SRC}/.scmversion"
 
 log "Generating defconfig..."

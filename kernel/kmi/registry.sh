@@ -28,7 +28,7 @@ run_kmi_gate() {
 
     echo "::group::🚦 KMI Gate (${KMI_REFERENCE})"
     if ! python3 "${ROOT_DIR}/kernel/kmi/gate.py" --reference "$reference_dir" --image "$image" --report "$report" --limit 40; then
-        python3 "${ROOT_DIR}/kernel/kmi/changed_types.py" --reference "$reference_dir" --report "$report" --symtypes "$OUT_DIR" --limit 40 || true
+        python3 "${ROOT_DIR}/kernel/kmi/btf_diff.py" --reference "$reference_dir" --image "$image" --limit 40 || true
         echo "::endgroup::"
         mkdir -p "${ROOT_DIR}/debug-stage"
         cp "$report" "${ROOT_DIR}/debug-stage/kmi-report-${KERNEL_VARIANT,,}.json" 2> /dev/null || true
