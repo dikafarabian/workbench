@@ -133,6 +133,17 @@ def summarize(kind, old, new):
     lines = []
     if old_size != new_size:
         lines.append(f"size {old_size} -> {new_size}")
+    if kind == "enum":
+        old_values, new_values = dict(old_members), dict(new_members)
+        for name in old_values:
+            if name not in new_values:
+                lines.append(f"removed {name}={old_values[name]}")
+            elif old_values[name] != new_values[name]:
+                lines.append(f"changed {name}={old_values[name]} -> {new_values[name]}")
+        for name in new_values:
+            if name not in old_values:
+                lines.append(f"added   {name}={new_values[name]}")
+        return lines
     old_map = {member_key(i, m): m for i, m in enumerate(old_members)}
     new_map = {member_key(i, m): m for i, m in enumerate(new_members)}
     for name in old_map:
@@ -155,7 +166,10 @@ def diff(stock, ours):
         only_new = sorted(ours[key] - stock[key])
         if not only_old or not only_new:
             continue
-        lines = summarize(key[0], only_old[0], only_new[0])
+        try:
+            lines = summarize(key[0], only_old[0], only_new[0])
+        except (AttributeError, IndexError, TypeError, ValueError) as error:
+            lines = [f"layout differs (summary failed: {error})"]
         structural = any(not line.startswith("changed") for line in lines) or key[0] == "enum"
         (own if structural else nested).append((key, lines))
     return own, nested
