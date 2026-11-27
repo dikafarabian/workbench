@@ -1,0 +1,104 @@
+From 6d21e232d0872ca57be36b87fe6f0bff02cf56d8 Mon Sep 17 00:00:00 2001
+From: riza <riza@onyx-gki>
+Date: Sat, 21 Nov 2026 23:23:00 +0700
+Subject: [PATCH] HID: playstation: DualShock 4 clone fallbacks for MAC,
+ firmware, and calibration
+
+---
+ drivers/hid/hid-playstation.c | 50 +++++++++++++++++++++++++----------
+ 1 file changed, 36 insertions(+), 14 deletions(-)
+
+diff --git a/drivers/hid/hid-playstation.c b/drivers/hid/hid-playstation.c
+index b197f16f2..6095b3a0e 100644
+--- a/drivers/hid/hid-playstation.c
++++ b/drivers/hid/hid-playstation.c
+@@ -8,6 +8,7 @@
+ #include <linux/bits.h>
+ #include <linux/crc32.h>
+ #include <linux/device.h>
++#include <linux/etherdevice.h>
+ #include <linux/hid.h>
+ #include <linux/idr.h>
+ #include <linux/input/mt.h>
+@@ -530,6 +531,31 @@ static const struct {int x; int y; } ps_gamepad_hat_mapping[] = {
+ 	{0, 0},
+ };
+ 
++static void dualshock4_set_default_calibration(struct dualshock4 *ds4);
++/*
++ * ds4-clones: neutral DualShock 4 calibration fallback for third-party/clone
++ * controllers that fail feature report 0x02/0x05 or return all-zero denominators.
++ */
++static void dualshock4_set_default_calibration(struct dualshock4 *ds4)
++{
++	static const int gyro_codes[] = { ABS_RX, ABS_RY, ABS_RZ };
++	static const int accel_codes[] = { ABS_X, ABS_Y, ABS_Z };
++	int i;
++
++	for (i = 0; i < ARRAY_SIZE(ds4->gyro_calib_data); i++) {
++		ds4->gyro_calib_data[i].abs_code = gyro_codes[i];
++		ds4->gyro_calib_data[i].bias = 0;
++		ds4->gyro_calib_data[i].sens_numer = DS4_GYRO_RANGE;
++		ds4->gyro_calib_data[i].sens_denom = S16_MAX;
++	}
++	for (i = 0; i < ARRAY_SIZE(ds4->accel_calib_data); i++) {
++		ds4->accel_calib_data[i].abs_code = accel_codes[i];
++		ds4->accel_calib_data[i].bias = 0;
++		ds4->accel_calib_data[i].sens_numer = DS4_ACC_RANGE;
++		ds4->accel_calib_data[i].sens_denom = S16_MAX;
++	}
++}
++
+ static int dualshock4_get_calibration_data(struct dualshock4 *ds4);
+ static inline void dualsense_schedule_work(struct dualsense *ds);
+ static inline void dualshock4_schedule_work(struct dualshock4 *ds4);
+@@ -1747,14 +1773,9 @@ static void dualshock4_dongle_calibration_work(struct work_struct *work)
+ 
+ 	ret = dualshock4_get_calibration_data(ds4);
+ 	if (ret < 0) {
+-		/* This call is very unlikely to fail for the dongle. When it
+-		 * fails we are probably in a very bad state, so mark the
+-		 * dongle as disabled. We will re-enable the dongle if a new
+-		 * DS4 hotplug is detect from sony_raw_event as any issues
+-		 * are likely resolved then (the dongle is quite stupid).
+-		 */
+-		hid_err(ds4->base.hdev, "DualShock 4 USB dongle: calibration failed, disabling device\n");
+-		dongle_state = DONGLE_DISABLED;
++		hid_warn(ds4->base.hdev, "DualShock 4 USB dongle: calibration failed (%d), using defaults\n", ret);
++		dualshock4_set_default_calibration(ds4);
++		dongle_state = DONGLE_CONNECTED;
+ 	} else {
+ 		hid_info(ds4->base.hdev, "DualShock 4 USB dongle: calibration completed\n");
+ 		dongle_state = DONGLE_CONNECTED;
+@@ -2564,15 +2585,16 @@ static struct ps_device *dualshock4_create(struct hid_device *hdev)
+ 
+ 	ret = dualshock4_get_mac_address(ds4);
+ 	if (ret) {
+-		hid_err(hdev, "Failed to get MAC address from DualShock4\n");
+-		return ERR_PTR(ret);
++		hid_warn(hdev, "Failed to get MAC address from DualShock4 (%d), using a random one\n", ret);
++		eth_random_addr(ds4->base.mac_address);
+ 	}
+ 	snprintf(hdev->uniq, sizeof(hdev->uniq), "%pMR", ds4->base.mac_address);
+ 
+ 	ret = dualshock4_get_firmware_info(ds4);
+ 	if (ret) {
+-		hid_err(hdev, "Failed to get firmware info from DualShock4\n");
+-		return ERR_PTR(ret);
++		hid_warn(hdev, "Failed to get firmware info from DualShock4 (%d), continuing with defaults\n", ret);
++		ds4->base.hw_version = 0;
++		ds4->base.fw_version = 0;
+ 	}
+ 
+ 	ret = ps_devices_list_add(ps_dev);
+@@ -2581,8 +2603,8 @@ static struct ps_device *dualshock4_create(struct hid_device *hdev)
+ 
+ 	ret = dualshock4_get_calibration_data(ds4);
+ 	if (ret) {
+-		hid_err(hdev, "Failed to get calibration data from DualShock4\n");
+-		goto err;
++		hid_warn(hdev, "Failed to get calibration data from DualShock4 (%d), using defaults\n", ret);
++		dualshock4_set_default_calibration(ds4);
+ 	}
+ 
+ 	ds4->gamepad = ps_gamepad_create(hdev, dualshock4_play_effect);

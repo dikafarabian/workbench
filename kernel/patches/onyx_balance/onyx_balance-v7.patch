@@ -1,0 +1,442 @@
+From fa079f135ef3f22c58fc5cd4c666fa4e817fbef8 Mon Sep 17 00:00:00 2001
+From: riza <riza@onyx-gki>
+Date: Sat, 21 Nov 2026 23:08:20 +0700
+Subject: [PATCH] cpufreq: onyx_balance: 4-cluster SM8735 boot/touch/screen-off
+ freq_qos policy
+
+---
+ drivers/cpufreq/Kconfig        |  12 +
+ drivers/cpufreq/Makefile       |   1 +
+ drivers/cpufreq/onyx_balance.c | 388 +++++++++++++++++++++++++++++++++
+ 3 files changed, 401 insertions(+)
+ create mode 100644 drivers/cpufreq/onyx_balance.c
+
+diff --git a/drivers/cpufreq/Kconfig b/drivers/cpufreq/Kconfig
+index 16e4e4369..039344813 100644
+--- a/drivers/cpufreq/Kconfig
++++ b/drivers/cpufreq/Kconfig
+@@ -237,6 +237,18 @@ config CPU_FREQ_GOV_REFLEX
+ 
+ 	  If in doubt, say M.
+ 
++config ONYX_BALANCE
++	bool "SM8735 (onyx) balanced 4-cluster CPU frequency policy"
++	depends on CPU_FREQ && INPUT && BACKLIGHT_CLASS_DEVICE
++	help
++	  Boot boost, a modest touch floor and a screen-off cap for the
++	  Snapdragon 8s Gen 4 (SM8735 tuna: 2x A720 policy0 + 3x A720 policy2 +
++	  2x A720 policy5 + 1x X4 policy7) in the Xiaomi POCO F7 / Redmi Turbo 4 Pro,
++	  all as freq_qos requests on top of whatever governor runs. Tunables in
++	  /sys/module/onyx_balance/parameters/.
++
++	  If unsure, say N.
++
+ comment "CPU frequency scaling drivers"
+ 
+ config CPUFREQ_DT
+diff --git a/drivers/cpufreq/Makefile b/drivers/cpufreq/Makefile
+index fa2d80ecd..85461b7f8 100644
+--- a/drivers/cpufreq/Makefile
++++ b/drivers/cpufreq/Makefile
+@@ -17,6 +17,7 @@ obj-$(CONFIG_CPU_FREQ_GOV_CONSERVATIVE)	+= cpufreq_conservative.o
+ obj-$(CONFIG_CPU_FREQ_GOV_COMMON)		+= cpufreq_governor.o
+ obj-$(CONFIG_CPU_FREQ_GOV_ATTR_SET)	+= cpufreq_governor_attr_set.o
+ obj-$(CONFIG_CPU_FREQ_GOV_REFLEX)	+= cpufreq_reflex.o
++obj-$(CONFIG_ONYX_BALANCE)		+= onyx_balance.o
+ 
+ obj-$(CONFIG_CPUFREQ_DT)		+= cpufreq-dt.o
+ obj-$(CONFIG_CPUFREQ_DT_PLATDEV)	+= cpufreq-dt-platdev.o
+diff --git a/drivers/cpufreq/onyx_balance.c b/drivers/cpufreq/onyx_balance.c
+new file mode 100644
+index 000000000..0041e589f
+--- /dev/null
++++ b/drivers/cpufreq/onyx_balance.c
+@@ -0,0 +1,388 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * onyx_balance - balanced 4-cluster CPU frequency policy for Xiaomi POCO F7 /
++ *                Redmi Turbo 4 Pro (onyx, Qualcomm SM8735 tuna / Snapdragon 8s Gen 4:
++ *                2x A720 policy0 + 3x A720 policy2 + 2x A720 policy5 + 1x X4 policy7)
++ *
++ * Three behaviours expressed as freq_qos requests on the four cpufreq policies:
++ *  - boot boost:      full clock on all 4 clusters until boot_boost_ms of uptime
++ *  - touch boost:     modest floor on little cluster (1.2 GHz) for 120 ms
++ *  - screen-off cap:  caps clusters (little 1.2 GHz, mid/big/prime 1.0 GHz) while
++ *                     the panel0-backlight class device reads 0 (armed only after seen lit).
++ *
++ * Tunables: /sys/module/onyx_balance/parameters/
++ */
++
++#define pr_fmt(fmt) "onyx_balance: " fmt
++
++#include <linux/backlight.h>
++#include <linux/cpufreq.h>
++#include <linux/init.h>
++#include <linux/input.h>
++#include <linux/jiffies.h>
++#include <linux/module.h>
++#include <linux/moduleparam.h>
++#include <linux/mutex.h>
++#include <linux/pm_qos.h>
++#include <linux/slab.h>
++#include <linux/timekeeping.h>
++#include <linux/workqueue.h>
++
++enum { CL_LTL = 0, CL_MID, CL_BIG, CL_PRM, NR_CL };
++/* SM8735: cpu0..1 (policy0), cpu2..4 (policy2), cpu5..6 (policy5), cpu7 (policy7) */
++static const unsigned int cl_cpu[NR_CL] = { 0, 2, 5, 7 };
++
++/* ---- tunables ---------------------------------------------------------- */
++
++static unsigned int boot_boost_ms = 60000;
++module_param(boot_boost_ms, uint, 0444);
++MODULE_PARM_DESC(boot_boost_ms, "full clock until this much uptime (0 = off)");
++
++static bool touch_boost = true;
++module_param(touch_boost, bool, 0644);
++
++static unsigned int touch_boost_ltl_min = 1200000;
++module_param(touch_boost_ltl_min, uint, 0644);
++MODULE_PARM_DESC(touch_boost_ltl_min, "little-cluster floor in kHz while touching");
++
++static unsigned int touch_boost_big_min;
++module_param(touch_boost_big_min, uint, 0644);
++MODULE_PARM_DESC(touch_boost_big_min, "mid/big/prime cluster floor in kHz while touching (0 = none)");
++
++static unsigned int touch_boost_ms = 120;
++module_param(touch_boost_ms, uint, 0644);
++
++static bool screen_off_cap = true;
++module_param(screen_off_cap, bool, 0644);
++
++static unsigned int screen_off_ltl_max = 1200000;
++module_param(screen_off_ltl_max, uint, 0644);
++
++static unsigned int screen_off_big_max = 1000000;
++module_param(screen_off_big_max, uint, 0644);
++
++static unsigned int screen_off_prm_max = 1000000;
++module_param(screen_off_prm_max, uint, 0644);
++
++static unsigned int screen_poll_ms = 2000;
++module_param(screen_poll_ms, uint, 0644);
++
++/* ---- read-only state ---------------------------------------------------- */
++
++static bool boot_boosting = true;
++module_param_named(boot_boost_active, boot_boosting, bool, 0444);
++
++static bool screen_off;
++module_param_named(screen_is_off, screen_off, bool, 0444);
++
++static bool capped;
++module_param_named(screen_cap_active, capped, bool, 0444);
++
++static bool backlight_seen_lit;
++module_param_named(backlight_tracks_panel, backlight_seen_lit, bool, 0444);
++
++static bool touching;
++module_param_named(touch_boost_active, touching, bool, 0444);
++
++/* ---- freq_qos requests, one set per cluster ----------------------------- */
++
++static DEFINE_MUTEX(bal_lock);
++static struct cpufreq_policy *cl_policy[NR_CL];
++static struct freq_qos_request min_req[NR_CL];
++static struct freq_qos_request max_req[NR_CL];
++
++static int cluster_of(struct cpufreq_policy *policy)
++{
++	int cl;
++
++	for (cl = 0; cl < NR_CL; cl++)
++		if (cpumask_test_cpu(cl_cpu[cl], policy->related_cpus))
++			return cl;
++	return -1;
++}
++
++static s32 min_for(int cl)
++{
++	s32 v = FREQ_QOS_MIN_DEFAULT_VALUE;
++
++	if (boot_boosting)
++		return cl_policy[cl]->cpuinfo.max_freq;
++	if (touching)
++		v = cl == CL_LTL ? touch_boost_ltl_min : touch_boost_big_min;
++	return v;
++}
++
++static s32 max_for(int cl)
++{
++	if (!capped)
++		return FREQ_QOS_MAX_DEFAULT_VALUE;
++	if (cl == CL_LTL)
++		return screen_off_ltl_max;
++	if (cl == CL_PRM)
++		return screen_off_prm_max;
++	return screen_off_big_max;
++}
++
++/* Caller holds bal_lock. */
++static void apply_requests(void)
++{
++	int cl;
++
++	for (cl = 0; cl < NR_CL; cl++) {
++		if (!cl_policy[cl])
++			continue;
++		freq_qos_update_request(&min_req[cl], min_for(cl));
++		freq_qos_update_request(&max_req[cl], max_for(cl));
++	}
++}
++
++static int bal_policy_notifier(struct notifier_block *nb,
++			       unsigned long event, void *data)
++{
++	struct cpufreq_policy *policy = data;
++	int cl = cluster_of(policy);
++
++	if (cl < 0)
++		return NOTIFY_DONE;
++
++	mutex_lock(&bal_lock);
++	if (event == CPUFREQ_CREATE_POLICY && !cl_policy[cl]) {
++		if (freq_qos_add_request(&policy->constraints, &min_req[cl],
++					 FREQ_QOS_MIN, FREQ_QOS_MIN_DEFAULT_VALUE) < 0)
++			goto out;
++		if (freq_qos_add_request(&policy->constraints, &max_req[cl],
++					 FREQ_QOS_MAX, FREQ_QOS_MAX_DEFAULT_VALUE) < 0) {
++			freq_qos_remove_request(&min_req[cl]);
++			goto out;
++		}
++		cl_policy[cl] = policy;
++		apply_requests();
++	} else if (event == CPUFREQ_REMOVE_POLICY && cl_policy[cl] == policy) {
++		freq_qos_remove_request(&min_req[cl]);
++		freq_qos_remove_request(&max_req[cl]);
++		cl_policy[cl] = NULL;
++	}
++out:
++	mutex_unlock(&bal_lock);
++	return NOTIFY_OK;
++}
++
++static struct notifier_block bal_policy_nb = {
++	.notifier_call = bal_policy_notifier,
++};
++
++/* ---- screen state: the panel backlight --------------------------------- */
++
++static unsigned long wake_grace_until;
++static void screen_poll_fn(struct work_struct *work);
++static DECLARE_DEFERRABLE_WORK(screen_poll_work, screen_poll_fn);
++
++static char *backlight_name = "panel0-backlight";
++module_param(backlight_name, charp, 0444);
++MODULE_PARM_DESC(backlight_name, "backlight class device that tracks the panel");
++
++static int backlight_brightness(void)
++{
++	struct backlight_device *bd;
++	int bri;
++
++	bd = backlight_device_get_by_name(backlight_name);
++	if (!bd)
++		return -1;
++	mutex_lock(&bd->ops_lock);
++	bri = bd->ops ? backlight_get_brightness(bd) : -1;
++	mutex_unlock(&bd->ops_lock);
++	put_device(&bd->dev);
++	return bri;
++}
++
++static void screen_poll_fn(struct work_struct *work)
++{
++	int bri = backlight_brightness();
++	bool off;
++
++	if (bri > 0 && !backlight_seen_lit) {
++		backlight_seen_lit = true;
++		pr_info("%s tracks the panel; screen-off cap armed\n", backlight_name);
++	}
++	off = bri == 0 && backlight_seen_lit &&
++	      time_after_eq(jiffies, wake_grace_until);
++
++	mutex_lock(&bal_lock);
++	if (off != screen_off || capped != (off && screen_off_cap)) {
++		screen_off = off;
++		capped = off && screen_off_cap;
++		apply_requests();
++	}
++	mutex_unlock(&bal_lock);
++
++	queue_delayed_work(system_power_efficient_wq, &screen_poll_work,
++			   msecs_to_jiffies(max(screen_poll_ms, 250U)));
++}
++
++static void screen_wake_fn(struct work_struct *work)
++{
++	mutex_lock(&bal_lock);
++	wake_grace_until = jiffies + HZ;
++	screen_off = false;
++	capped = false;
++	apply_requests();
++	mutex_unlock(&bal_lock);
++	mod_delayed_work(system_power_efficient_wq, &screen_poll_work, HZ);
++}
++static DECLARE_WORK(screen_wake_work, screen_wake_fn);
++
++/* ---- boot boost ----------------------------------------------------------- */
++
++static void boot_end_fn(struct work_struct *work)
++{
++	mutex_lock(&bal_lock);
++	boot_boosting = false;
++	apply_requests();
++	mutex_unlock(&bal_lock);
++	pr_info("boot boost released\n");
++
++	queue_delayed_work(system_power_efficient_wq, &screen_poll_work, 0);
++}
++static DECLARE_DELAYED_WORK(boot_end_work, boot_end_fn);
++
++/* ---- touch boost ---------------------------------------------------------- */
++
++static atomic_t touch_want = ATOMIC_INIT(0);
++
++static void touch_apply_fn(struct work_struct *work)
++{
++	mutex_lock(&bal_lock);
++	touching = atomic_read(&touch_want);
++	apply_requests();
++	mutex_unlock(&bal_lock);
++}
++static DECLARE_WORK(touch_apply_work, touch_apply_fn);
++
++static void touch_end_fn(struct work_struct *work)
++{
++	atomic_set(&touch_want, 0);
++	queue_work(system_highpri_wq, &touch_apply_work);
++}
++static DECLARE_DELAYED_WORK(touch_end_work, touch_end_fn);
++
++#define BAL_HANDLE_TOUCH	1UL
++
++static void bal_input_event(struct input_handle *handle, unsigned int type,
++			    unsigned int code, int value)
++{
++	bool is_touch = (unsigned long)handle->private == BAL_HANDLE_TOUCH;
++
++	if (type != EV_ABS && type != EV_KEY)
++		return;
++
++	if (READ_ONCE(screen_off)) {
++		queue_work(system_highpri_wq, &screen_wake_work);
++		return;
++	}
++
++	if (!is_touch || !READ_ONCE(touch_boost))
++		return;
++
++	if (atomic_xchg(&touch_want, 1) == 0)
++		queue_work(system_highpri_wq, &touch_apply_work);
++	mod_delayed_work(system_wq, &touch_end_work,
++			 msecs_to_jiffies(READ_ONCE(touch_boost_ms)));
++}
++
++static int bal_input_connect(struct input_handler *handler,
++			     struct input_dev *dev,
++			     const struct input_device_id *id)
++{
++	struct input_handle *handle;
++	bool touch = test_bit(INPUT_PROP_DIRECT, dev->propbit) &&
++		     test_bit(EV_ABS, dev->evbit);
++	bool power = test_bit(EV_KEY, dev->evbit) &&
++		     test_bit(KEY_POWER, dev->keybit);
++	int ret;
++
++	if (!touch && !power)
++		return -ENODEV;
++
++	handle = kzalloc(sizeof(*handle), GFP_KERNEL);
++	if (!handle)
++		return -ENOMEM;
++
++	handle->dev = dev;
++	handle->handler = handler;
++	handle->name = "onyx_balance";
++	handle->private = (void *)(touch ? BAL_HANDLE_TOUCH : 0UL);
++
++	ret = input_register_handle(handle);
++	if (ret)
++		goto err_free;
++	ret = input_open_device(handle);
++	if (ret)
++		goto err_unregister;
++	return 0;
++
++err_unregister:
++	input_unregister_handle(handle);
++err_free:
++	kfree(handle);
++	return ret;
++}
++
++static void bal_input_disconnect(struct input_handle *handle)
++{
++	input_close_device(handle);
++	input_unregister_handle(handle);
++	kfree(handle);
++}
++
++static const struct input_device_id bal_input_ids[] = {
++	{
++		.flags = INPUT_DEVICE_ID_MATCH_EVBIT | INPUT_DEVICE_ID_MATCH_ABSBIT,
++		.evbit = { BIT_MASK(EV_ABS) },
++		.absbit = { [BIT_WORD(ABS_MT_POSITION_X)] = BIT_MASK(ABS_MT_POSITION_X) },
++	},
++	{
++		.flags = INPUT_DEVICE_ID_MATCH_EVBIT | INPUT_DEVICE_ID_MATCH_KEYBIT,
++		.evbit = { BIT_MASK(EV_KEY) },
++		.keybit = { [BIT_WORD(KEY_POWER)] = BIT_MASK(KEY_POWER) },
++	},
++	{ },
++};
++
++static struct input_handler bal_input_handler = {
++	.event		= bal_input_event,
++	.connect	= bal_input_connect,
++	.disconnect	= bal_input_disconnect,
++	.name		= "onyx_balance",
++	.id_table	= bal_input_ids,
++};
++
++/* ---- init ----------------------------------------------------------------- */
++
++static int __init onyx_balance_init(void)
++{
++	u64 up_ms = ktime_to_ms(ktime_get_boottime());
++	int ret;
++
++	boot_boosting = boot_boost_ms && up_ms < boot_boost_ms;
++
++	ret = cpufreq_register_notifier(&bal_policy_nb, CPUFREQ_POLICY_NOTIFIER);
++	if (ret) {
++		pr_err("policy notifier registration failed %d\n", ret);
++		return ret;
++	}
++
++	ret = input_register_handler(&bal_input_handler);
++	if (ret)
++		pr_err("input handler registration failed %d\n", ret);
++
++	queue_delayed_work(system_power_efficient_wq, &boot_end_work,
++			   boot_boosting ? msecs_to_jiffies(boot_boost_ms - up_ms) : 0);
++
++	pr_info("boot boost %s, touch floor %u/%u kHz for %u ms, screen-off cap %u/%u/%u kHz (arms once %s is seen lit)\n",
++		boot_boosting ? "on" : "off", touch_boost_ltl_min, touch_boost_big_min,
++		touch_boost_ms, screen_off_ltl_max, screen_off_big_max, screen_off_prm_max,
++		backlight_name);
++	return 0;
++}
++late_initcall(onyx_balance_init);

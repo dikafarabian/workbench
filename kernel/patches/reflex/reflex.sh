@@ -4,7 +4,8 @@
 # ⚡ PATCH — Reflex (CPUFreq governor)
 # ======================================================
 
-REFLEX_PATCH="${ROOT_DIR}/kernel/patches/reflex/reflex-v0.4.0.patch"
+REFLEX_PATCH="${ROOT_DIR}/kernel/patches/reflex/${KERNEL_VERSION}/reflex-v0.4.0.patch"
+[ -f "$REFLEX_PATCH" ] || REFLEX_PATCH="${ROOT_DIR}/kernel/patches/reflex/reflex-v0.4.0.patch"
 
 log "⚡ Applying Reflex CPUFreq governor patch..."
 apply_patch "Reflex" "$REFLEX_PATCH" "$KERNEL_SRC" --fuzz=3

@@ -5,6 +5,7 @@
 # TCP congestion control backport by fatalcoder524
 # Patch source: https://github.com/WildKernels/kernel_patches
 # android14-6.1-lts: GKI-layout-preserving adaptation from midori01/gki_ksu_workflow
+# android15-6.6-lts: in-place BBRv3 with GKI KABI preserved, from riza220201/poco-f7-kernel
 # ======================================================
 
 BBRV3_PATCHES_BASE="https://github.com/WildKernels/kernel_patches/raw/main/common/bbrv3"
@@ -35,7 +36,15 @@ else
     fi
 fi
 
-gki_defconfig_enable CONFIG_TCP_CONG_ADVANCED CONFIG_TCP_CONG_BBR3 CONFIG_DEFAULT_BBR3
+if grep -q '^config TCP_CONG_BBR3' "${KERNEL_SRC}/net/ipv4/Kconfig"; then
+    BBRV3_ALGORITHM="bbr3"
+    BBRV3_KCONFIG="CONFIG_TCP_CONG_BBR3"
+    gki_defconfig_enable CONFIG_TCP_CONG_ADVANCED CONFIG_TCP_CONG_BBR3 CONFIG_DEFAULT_BBR3
+else
+    BBRV3_ALGORITHM="bbr"
+    BBRV3_KCONFIG="CONFIG_TCP_CONG_BBR"
+    gki_defconfig_enable CONFIG_TCP_CONG_ADVANCED CONFIG_TCP_CONG_BBR CONFIG_DEFAULT_BBR CONFIG_NET_SCH_DEFAULT CONFIG_DEFAULT_FQ
+fi
 
 cd "${KERNEL_SRC}"
 if [ "${KERNEL_VERSION}" = "5.10" ]; then
@@ -55,7 +64,7 @@ if [ "${KERNEL_VERSION}" = "5.10" ]; then
     fi
 fi
 
-python3 "${ROOT_DIR}/kernel/patches/bbrv3/enforcer.py" "${KERNEL_SRC}/net/ipv4/tcp_cong.c" \
+python3 "${ROOT_DIR}/kernel/patches/bbrv3/enforcer.py" "${KERNEL_SRC}/net/ipv4/tcp_cong.c" "$BBRV3_ALGORITHM" "$BBRV3_KCONFIG" \
     || error "BBRv3: enforcer injection into tcp_cong.c failed!"
 
 cd "${ROOT_DIR}"

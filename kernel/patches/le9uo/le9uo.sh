@@ -4,21 +4,26 @@
 # 🛡️ PATCH — le9uo (working set protection)
 # ======================================================
 
-LE9UO_PATCH="${ROOT_DIR}/kernel/patches/le9uo/le9uo-v1.15.patch"
+LE9UO_PATCH="${ROOT_DIR}/kernel/patches/le9uo/${KERNEL_VERSION}/le9uo-v1.15b.patch"
+[ -f "$LE9UO_PATCH" ] || LE9UO_PATCH="${ROOT_DIR}/kernel/patches/le9uo/le9uo-v1.15.patch"
 
 log "🛡️ Applying le9uo working set protection patch..."
 apply_patch "le9uo" "$LE9UO_PATCH" "$KERNEL_SRC" --fuzz=3
 
-DEFCONFIG_FILE="${KERNEL_SRC}/arch/arm64/configs/gki_defconfig"
-sed -i '/^# le9uo Working Set Protection (Luminaire) — active from boot$/d; /^CONFIG_WORKINGSET_PROTECTION_ENABLED=y$/d; /^CONFIG_ANON_MIN_RATIO=[0-9]*$/d; /^CONFIG_CLEAN_LOW_RATIO=[0-9]*$/d; /^CONFIG_CLEAN_MIN_RATIO=[0-9]*$/d' "$DEFCONFIG_FILE"
-cat >> "$DEFCONFIG_FILE" << 'DEFEOF'
+if grep -q '^config WORKINGSET_PROTECTION_ENABLED' "${KERNEL_SRC}/mm/Kconfig"; then
+    DEFCONFIG_FILE="${KERNEL_SRC}/arch/arm64/configs/gki_defconfig"
+    sed -i '/^# le9uo Working Set Protection (Luminaire) — active from boot$/d; /^CONFIG_WORKINGSET_PROTECTION_ENABLED=y$/d; /^CONFIG_ANON_MIN_RATIO=[0-9]*$/d; /^CONFIG_CLEAN_LOW_RATIO=[0-9]*$/d; /^CONFIG_CLEAN_MIN_RATIO=[0-9]*$/d' "$DEFCONFIG_FILE"
+    cat >> "$DEFCONFIG_FILE" << 'DEFEOF'
 # le9uo Working Set Protection (Luminaire) — active from boot
 CONFIG_WORKINGSET_PROTECTION_ENABLED=y
 CONFIG_ANON_MIN_RATIO=5
 CONFIG_CLEAN_LOW_RATIO=0
 CONFIG_CLEAN_MIN_RATIO=5
 DEFEOF
-log "le9uo: defconfig forced (protection active from first boot, anon/clean min ratio 5%) ✅"
+    log "le9uo: defconfig forced (protection active from first boot, anon/clean min ratio 5%) ✅"
+else
+    log "le9uo: patch preset kept (dormant until vm.workingset_protection=1) ✅"
+fi
 
 LE9UO_VERSION="$(basename "$LE9UO_PATCH" .patch | sed 's/^le9uo-//')"
 

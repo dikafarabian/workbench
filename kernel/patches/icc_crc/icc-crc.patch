@@ -1,0 +1,16 @@
+diff --git a/drivers/interconnect/internal.h b/drivers/interconnect/internal.h
+index 3b9d50589..898f6f4e0 100644
+--- a/drivers/interconnect/internal.h
++++ b/drivers/interconnect/internal.h
+@@ -38,7 +38,11 @@ struct icc_req {
+ struct icc_path {
+ 	const char *name;
+ 	size_t num_nodes;
++#ifdef __GENKSYMS__
++	struct icc_req reqs[];
++#else
+ 	struct icc_req reqs[] __counted_by(num_nodes);
++#endif
+ };
+ 
+ struct icc_path *icc_get(struct device *dev, const char *src, const char *dst);

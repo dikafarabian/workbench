@@ -46,6 +46,8 @@ MARKER = "luminaire_bbr3_enforce_init"
 
 def main():
     path = sys.argv[1]
+    algorithm = sys.argv[2] if len(sys.argv) > 2 else "bbr3"
+    kconfig = sys.argv[3] if len(sys.argv) > 3 else "CONFIG_TCP_CONG_BBR3"
     with open(path, "r") as f:
         content = f.read()
     if MARKER in content:
@@ -56,7 +58,8 @@ def main():
         print(f"[error] bbrv3 enforcer: anchor '{anchor}' not found in {path} "
               f"— upstream may have refactored tcp_cong.c!", file=sys.stderr)
         sys.exit(1)
-    content = content.replace(anchor, anchor + "\n" + ENFORCER_BLOCK, 1)
+    block = ENFORCER_BLOCK.replace('"bbr3"', f'"{algorithm}"').replace("CONFIG_TCP_CONG_BBR3", kconfig)
+    content = content.replace(anchor, anchor + "\n" + block, 1)
     with open(path, "w") as f:
         f.write(content)
     print("[info] bbrv3 enforcer: injected ✅")
