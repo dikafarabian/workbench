@@ -10,6 +10,11 @@
     "icc_crc": {
       "name": "ICC CRC",
       "versions": ["6.6"]
+    },
+    "bypasscharging": {
+      "name": "Bypass Charging",
+      "versions": ["6.6"],
+      "hidden": true
     }
   }
 }

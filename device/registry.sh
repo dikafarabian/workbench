@@ -28,7 +28,9 @@ run_device() {
         script="${ROOT_DIR}/device/${device}/patches/${feature}/${feature}.sh"
         [ -f "$script" ] || error "Device patch '${feature}' is listed in ${manifest} but ${script} doesn't exist."
         source "$script"
-        APPLIED_PATCHES="${APPLIED_PATCHES:+${APPLIED_PATCHES},}${feature}"
+        if ! jq -e --arg feature "$feature" '.patches[$feature].hidden // false' "$manifest" > /dev/null; then
+            APPLIED_PATCHES="${APPLIED_PATCHES:+${APPLIED_PATCHES},}${feature}"
+        fi
     done
     echo "::endgroup::"
 }
