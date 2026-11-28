@@ -1,0 +1,15 @@
+{
+  "name": "POCO F7 (onyx)",
+  "soc": "SM8735",
+  "kernel": "6.6",
+  "patches": {
+    "onyx_balance": {
+      "name": "onyx_balance",
+      "versions": ["6.6"]
+    },
+    "icc_crc": {
+      "name": "ICC CRC",
+      "versions": ["6.6"]
+    }
+  }
+}

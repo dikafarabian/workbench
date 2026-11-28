@@ -21,6 +21,7 @@ KERNEL_BRANCH="$(resolve_kernel_branch)"
 source "${ROOT_DIR}/kernel/core/registry.sh"
 source "${ROOT_DIR}/kernel/addons/registry.sh"
 source "${ROOT_DIR}/kernel/patches/registry.sh"
+source "${ROOT_DIR}/device/registry.sh"
 source "${ROOT_DIR}/kernel/kabi/registry.sh"
 source "${ROOT_DIR}/kernel/ksu/registry.sh"
 
@@ -61,6 +62,7 @@ main() {
     mark_stage_ok CHECKPOINT_VARIANT_OK
     run_core
     run_patches
+    run_device
     run_addons
     mark_stage_ok CHECKPOINT_ADDONS_OK
     run_build

@@ -10,9 +10,14 @@ FEATURES_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "
 with open(FEATURES_FILE) as handle:
     FEATURES = json.load(handle)
 
+DEVICE_PATCHES = {}
+if FEATURES.get("device"):
+    with open(os.path.join(os.path.dirname(FEATURES_FILE), "..", "device", FEATURES["device"], "device.json")) as handle:
+        DEVICE_PATCHES = json.load(handle).get("patches", {})
+
 KERNEL_VERSION_TO_ANDROID = {v: d["android_number"] for v, d in FEATURES["versions"].items()}
 ADDON_DISPLAY_NAMES = {k: d["name"] for k, d in FEATURES["addons"].items()}
-PATCH_DISPLAY_NAMES = {k: d["name"] for k, d in FEATURES["patches"].items()}
+PATCH_DISPLAY_NAMES = {k: d["name"] for k, d in {**FEATURES["patches"], **DEVICE_PATCHES}.items()}
 MOUNTLESS_TOKENS = tuple(k for k, d in FEATURES["addons"].items() if d.get("mountless"))
 
 def addon_order():
@@ -49,7 +54,7 @@ def addon_version(env, token):
     return lookup_version(env.get("ADDON_VERSIONS", ""), token)
 
 def patch_order():
-    return list(FEATURES["patches"])
+    return list(FEATURES["patches"]) + list(DEVICE_PATCHES)
 
 def patch_display_name(token):
     if token in PATCH_DISPLAY_NAMES:

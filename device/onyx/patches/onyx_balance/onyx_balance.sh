@@ -5,7 +5,7 @@
 # ======================================================
 # Source: https://github.com/riza220201/poco-f7-kernel
 
-ONYX_BALANCE_PATCH="${ROOT_DIR}/kernel/patches/onyx_balance/onyx_balance-v7.patch"
+ONYX_BALANCE_PATCH="${ROOT_DIR}/device/onyx/patches/onyx_balance/onyx_balance-v7.patch"
 
 log "🎯 Applying onyx_balance CPUFreq policy patch..."
 apply_patch "onyx_balance" "$ONYX_BALANCE_PATCH" "$KERNEL_SRC" --fuzz=3
