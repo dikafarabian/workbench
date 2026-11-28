@@ -43,7 +43,18 @@ fi
 KBUILD_BUILD_TIMESTAMP="$(date '+%a %b %d %T %Z %Y')"
 export KBUILD_BUILD_TIMESTAMP
 
+SETLOCALVERSION="${KERNEL_SRC}/scripts/setlocalversion"
+if [ -f "$SETLOCALVERSION" ] && ! grep -q '\.scmversion' "$SETLOCALVERSION"; then
+    sed -i '0,/^\tcd "\$srctree"$/s//\tcd "$srctree"\n\n\tif test -e .scmversion; then\n\t\tcat .scmversion\n\t\treturn\n\tfi/' "$SETLOCALVERSION"
+    grep -q '\.scmversion' "$SETLOCALVERSION" || error "setlocalversion: .scmversion support patch did not apply!"
+    log "setlocalversion: .scmversion support restored ✅"
+fi
+
 if [ "$BUILD_SYSTEM" != "KLEAF" ]; then
+    MAKE_DEFCONFIG="${KERNEL_SRC}/arch/arm64/configs/gki_defconfig"
+    if [ -n "${LOCALVERSION_OVERRIDE:-}" ] && [ -f "$MAKE_DEFCONFIG" ]; then
+        sed -i 's|^CONFIG_LOCALVERSION=.*|CONFIG_LOCALVERSION=""|' "$MAKE_DEFCONFIG"
+    fi
     log "Branding: ${BUILD_USER:-(stock)}@${BUILD_HOST:-(stock)} | ${LOCALVERSION:-(stock, no LOCALVERSION)} ✅"
     return 0
 fi
