@@ -42,7 +42,7 @@ fi
 
 CANDIDATE_VAR="CANDIDATE_${SUSFS_MIRROR_KEY^^}"
 SUSFS_MIRRORED="false"
-mirror_preseed "$SUSFS_MIRROR_KEY" "$SUSFS_DIR" "$SUSFS_REF" "${!CANDIDATE_VAR:-false}" "$(resolve_android_version)-${KERNEL_VERSION}" && SUSFS_MIRRORED="true"
+mirror_preseed "$SUSFS_MIRROR_KEY" "$SUSFS_DIR" "$SUSFS_REF" "${!CANDIDATE_VAR:-false}" "$(mirror_label)" && SUSFS_MIRRORED="true"
 
 if [ "$SUSFS_MIRRORED" = "true" ]; then
     log "SuSFS: using pre-seeded mirror copy, skipping upstream clone"

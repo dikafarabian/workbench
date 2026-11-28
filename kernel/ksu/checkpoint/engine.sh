@@ -20,7 +20,8 @@ COMPONENTS=("$@")
 MANIFEST_REL="kernel/ksu/manifests/$(resolve_android_version)-${KERNEL_VERSION}.json"
 MANIFEST="${ROOT_DIR}/${MANIFEST_REL}"
 
-MIRROR_LABEL="$(resolve_android_version)-${KERNEL_VERSION}"
+MIRROR_LABEL="$(mirror_label)"
+CHECKPOINT_BRANCH="$(checkpoint_branch)"
 
 init_remote() {
     [ -n "${PERSONAL_TOKEN:-}" ] || error "checkpoint: PERSONAL_TOKEN not set — cannot push to ${GITHUB_REPOSITORY}"
@@ -38,7 +39,7 @@ apply_and_push() {
     init_remote
 
     while [ "$attempt" -le "$max_attempts" ]; do
-        run_quiet git fetch "$REMOTE" main
+        run_quiet git fetch "$REMOTE" "$CHECKPOINT_BRANCH"
         git reset -q --hard FETCH_HEAD
 
         mkdir -p "$(dirname "$MANIFEST")"
@@ -51,7 +52,7 @@ apply_and_push() {
         (
             git add "$MANIFEST_REL"
             git commit -q -m "$commit_msg" 2>/dev/null || { echo "nothing to commit"; exit 0; }
-            git push "$REMOTE" "HEAD:main"
+            git push "$REMOTE" "HEAD:${CHECKPOINT_BRANCH}"
         ) && return 0
 
         warn "checkpoint: push conflict (attempt ${attempt}/${max_attempts}) — retrying..."
@@ -96,7 +97,9 @@ commit_url() {
 }
 
 proposal_prefix() {
-    echo "skip/${1}-${KERNEL_VERSION}-"
+    local scope=""
+    [ "$CHECKPOINT_BRANCH" = "main" ] || scope="${CHECKPOINT_BRANCH//\//-}/"
+    echo "skip/${scope}${1}-${KERNEL_VERSION}-"
 }
 
 open_proposals() {
@@ -140,7 +143,7 @@ proposal_stage_label() {
 push_proposal_branch() {
     local key="$1" ref="$2" branch="$3" tree
     init_remote
-    run_quiet git fetch "$REMOTE" main
+    run_quiet git fetch "$REMOTE" "$CHECKPOINT_BRANCH"
     tree="$(mktemp -d)"
     git worktree add -q --detach "$tree" FETCH_HEAD
     if ! (
@@ -190,7 +193,7 @@ Also tested in this run (cause could be any):
 ${others%$'\n'}"
     fi
 
-    gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" \
+    gh pr create --repo "$GITHUB_REPOSITORY" --base "$CHECKPOINT_BRANCH" --head "$branch" \
         --title "Skip ${label} ${ref:0:7} (${KERNEL_VERSION})" --body "$body" \
         || warn "checkpoint: couldn't open proposal for ${key}"
 }

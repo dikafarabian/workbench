@@ -9,7 +9,7 @@ source "${ROOT_DIR}/kernel/ksu/checkpoint/mirrors.sh"
 
 ksu_preseed() {
     local key="$1" ref_var="${1^^}_REF" candidate_var="CANDIDATE_${1^^}"
-    mirror_preseed "$key" "$KSU_DIR" "${!ref_var:-}" "${!candidate_var:-false}" "$(resolve_android_version)-${KERNEL_VERSION}" || true
+    mirror_preseed "$key" "$KSU_DIR" "${!ref_var:-}" "${!candidate_var:-false}" "$(mirror_label)" || true
 }
 
 ksu_patcher() {

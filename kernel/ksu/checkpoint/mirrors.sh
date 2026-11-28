@@ -66,6 +66,21 @@ mirror_push_url() {
     echo "https://x-access-token:${PERSONAL_TOKEN}@github.com/${MIRROR_REPO[$key]}.git"
 }
 
+checkpoint_branch() {
+    echo "${CHECKPOINT_BRANCH:-${GITHUB_REF_NAME:-main}}"
+}
+
+mirror_label() {
+    local label branch
+    label="$(resolve_android_version)-${KERNEL_VERSION}"
+    branch="$(checkpoint_branch)"
+    if [ "$branch" = "main" ]; then
+        echo "$label"
+    else
+        echo "${label}-${branch//\//-}"
+    fi
+}
+
 mirror_branch() {
     echo "pin/$2/$1"
 }
