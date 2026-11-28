@@ -24,3 +24,11 @@ else
     mkdir -p "${HOME}/kernel-cache"
     rsync -a --delete "${KERNEL_DIR}/" "${HOME}/kernel-cache/"
 fi
+
+if [ -n "${KERNEL_COMMIT:-}" ]; then
+    log "Pinning kernel source to commit ${KERNEL_COMMIT}..."
+    retry 3 run_quiet git -C "${KERNEL_DIR}/common" fetch -q --depth=1 origin "$KERNEL_COMMIT" \
+        || error "Failed to fetch kernel commit ${KERNEL_COMMIT}!"
+    git -C "${KERNEL_DIR}/common" checkout -q --force FETCH_HEAD
+    log "Kernel source pinned ✅ ($(git -C "${KERNEL_DIR}/common" log -1 --format='%h %s'))"
+fi

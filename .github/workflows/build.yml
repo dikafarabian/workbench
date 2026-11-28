@@ -256,6 +256,7 @@ jobs:
       SUSFS_ENABLED:               ${{ matrix.susfs }}
       KERNEL_VERSION:              ${{ inputs.kernel_version }}
       KERNEL_BRANCH_OVERRIDE:      ${{ inputs.kernel_branch_override }}
+      KERNEL_COMMIT:               ${{ vars.KERNEL_COMMIT }}
       LOCALVERSION_OVERRIDE:      ${{ inputs.localversion_override }}
       BUILD_IDENTITY_OVERRIDE:  "chainonyourdoor@LuminaireCI"
       LTO_MODE:                  ${{ inputs.lto_mode }}
