@@ -13,7 +13,9 @@ if susfs_active; then
     SUKISU_PRESEED_KEY="sukisu_builtin"
 fi
 
-ksu_integrate "SukiSU-Ultra" "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" "${SUKISU_REF:-}" "$SUKISU_PRESEED_KEY"
+SUKISU_SETUP_REV="${SUKISU_REF:-main}"
+
+ksu_integrate "SukiSU-Ultra" "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/${SUKISU_SETUP_REV}/kernel/setup.sh" "${SUKISU_REF:-}" "$SUKISU_PRESEED_KEY"
 
 log "Applying Luminaire branding..."
 if susfs_active; then
